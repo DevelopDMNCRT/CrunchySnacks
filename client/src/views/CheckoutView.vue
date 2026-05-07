@@ -171,19 +171,17 @@ const { t } = useLocale()
 
 const router = useRouter()
 
-// Leaflet se carga solo cuando el usuario abre el modal del mapa
-let L = null
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png'
+import iconUrl from 'leaflet/dist/images/marker-icon.png'
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl })
 
 const loadLeaflet = async () => {
-  if (L) return
-  const mod = await import('leaflet')
-  L = mod.default
-  await import('leaflet/dist/leaflet.css')
-  const { default: iconRetinaUrl } = await import('leaflet/dist/images/marker-icon-2x.png')
-  const { default: iconUrl } = await import('leaflet/dist/images/marker-icon.png')
-  const { default: shadowUrl } = await import('leaflet/dist/images/marker-shadow.png')
-  delete L.Icon.Default.prototype._getIconUrl
-  L.Icon.Default.mergeOptions({ iconRetinaUrl, iconUrl, shadowUrl })
+  // Ya está cargado estáticamente
 }
 
 const statesData = {
