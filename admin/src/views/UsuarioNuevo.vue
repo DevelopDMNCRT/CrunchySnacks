@@ -10,11 +10,21 @@
         >
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </router-link>
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">Nuevo Usuario</h1>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">
+          {{ isEditing ? 'Editar Usuario' : 'Nuevo Usuario' }}
+        </h1>
+      </div>
+
+      <!-- Loading state -->
+      <div v-if="loadingUser" class="flex items-center justify-center py-20">
+        <svg class="animate-spin h-8 w-8 text-brand-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
       </div>
 
       <!-- Form Card -->
-      <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+      <div v-else class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <form @submit.prevent="guardar" class="divide-y divide-gray-100 dark:divide-gray-800">
 
           <div class="px-6 py-8">
@@ -72,15 +82,16 @@
               <!-- Contraseña -->
               <div class="col-span-12 sm:col-span-4">
                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                  Contraseña <span class="text-error-500">*</span>
+                  Contraseña <span v-if="!isEditing" class="text-error-500">*</span>
+                  <span v-else class="text-gray-400 font-normal text-xs"> (dejar vacío para no cambiar)</span>
                 </label>
                 <div class="relative">
                   <input
                     v-model="form.password"
                     :type="showPass ? 'text' : 'password'"
                     placeholder="Mínimo 8 caracteres"
-                    required
-                    minlength="8"
+                    :required="!isEditing"
+                    :minlength="form.password.length > 0 ? 8 : undefined"
                     class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 pr-11 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
                   />
                   <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
@@ -93,14 +104,14 @@
               <!-- Confirmar Contraseña -->
               <div class="col-span-12 sm:col-span-4">
                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                  Confirmar Contraseña <span class="text-error-500">*</span>
+                  Confirmar Contraseña <span v-if="!isEditing" class="text-error-500">*</span>
                 </label>
                 <div class="relative">
                   <input
                     v-model="form.confirmar"
                     :type="showConfirm ? 'text' : 'password'"
                     placeholder="Repite la contraseña"
-                    required
+                    :required="!isEditing && form.password.length > 0"
                     class="h-11 w-full rounded-lg border bg-transparent px-4 pr-11 py-2.5 text-sm shadow-theme-xs placeholder:text-gray-400 focus:outline-none focus:ring-3 transition-colors"
                     :class="passwordError
                       ? 'border-error-400 text-error-600 focus:border-error-400 focus:ring-error-400/10 dark:border-error-500 dark:text-error-400'
@@ -127,9 +138,10 @@
             </router-link>
             <button
               type="submit"
-              class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition-colors"
+              :disabled="loading || !!passwordError"
+              class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Guardar Usuario
+              {{ loading ? 'Guardando...' : isEditing ? 'Guardar Cambios' : 'Guardar Usuario' }}
             </button>
           </div>
 
@@ -140,13 +152,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, reactive, computed, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/layout/AdminLayout.vue';
+import axios from 'axios';
 
 const router = useRouter();
-const showPass    = ref(false);
+const route  = useRoute();
+
+const isEditing  = computed(() => !!route.params.id);
+const showPass   = ref(false);
 const showConfirm = ref(false);
+const loading    = ref(false);
+const loadingUser = ref(false);
 
 const form = reactive({
   nombre:    '',
@@ -156,13 +174,61 @@ const form = reactive({
   confirmar: '',
 });
 
-const passwordError = computed(() =>
-  form.confirmar.length > 0 && form.password !== form.confirmar
-);
+// Load existing user data when editing
+onMounted(async () => {
+  if (!isEditing.value) return;
+  loadingUser.value = true;
+  try {
+    const res = await axios.get(`/api/users/${route.params.id}`);
+    form.nombre = res.data.nombre;
+    form.correo = res.data.correo;
+    form.rol    = res.data.rol;
+  } catch (err) {
+    console.error('Error loading user:', err);
+    alert('No se pudo cargar el usuario');
+    router.push('/usuarios');
+  } finally {
+    loadingUser.value = false;
+  }
+});
 
-const guardar = () => {
+const passwordError = computed(() => {
+  if (form.password.length === 0 && isEditing.value) return null;
+  return form.confirmar.length > 0 && form.password !== form.confirmar
+    ? 'Las contraseñas no coinciden'
+    : null;
+});
+
+const guardar = async () => {
   if (passwordError.value) return;
-  // TODO: enviar al backend
-  router.push('/usuarios');
+
+  loading.value = true;
+  try {
+    if (isEditing.value) {
+      const payload = {
+        nombre: form.nombre,
+        correo: form.correo,
+        rol:    form.rol,
+      };
+      // Only include password if user typed one
+      if (form.password.length > 0) {
+        payload.password = form.password;
+      }
+      await axios.put(`/api/users/${route.params.id}`, payload);
+    } else {
+      await axios.post('/api/users', {
+        nombre:   form.nombre,
+        correo:   form.correo,
+        rol:      form.rol,
+        password: form.password,
+      });
+    }
+    router.push('/usuarios');
+  } catch (err) {
+    console.error('Error saving user:', err);
+    alert(err.response?.data?.error || 'Error al guardar el usuario');
+  } finally {
+    loading.value = false;
+  }
 };
 </script>

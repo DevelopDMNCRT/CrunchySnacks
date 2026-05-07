@@ -35,11 +35,12 @@ export async function fetchRates() {
 // ── Price formatter ───────────────────────────────────────────────────────────
 // Receives a price in MXN, applies 15% markup then converts at live rate.
 export function formatPrice(mxnPrice) {
+  if (mxnPrice === null || mxnPrice === undefined) return '---'
   const cfg = CURRENCY[currentLang.value] ?? CURRENCY.ESP
   if (cfg.code === 'MXN') {
-    return `$${mxnPrice.toLocaleString('es-MX')} MXN`
+    return `$${Number(mxnPrice).toLocaleString('es-MX')} MXN`
   }
   const rate = exchangeRates.value[cfg.code] ?? FALLBACK[cfg.code]
-  const converted = Math.ceil(mxnPrice * MARKUP * rate)
+  const converted = Math.ceil(Number(mxnPrice) * MARKUP * rate)
   return `${cfg.symbol}${converted.toLocaleString('en-US')} ${cfg.code}`
 }

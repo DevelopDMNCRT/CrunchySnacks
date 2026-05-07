@@ -270,16 +270,8 @@ const menuGroups = [
         name: "Tiendas",
         path: "/tiendas",
       },
-      {
-        icon: MailIcon,
-        name: "News",
-        path: "/news",
-      },
-      {
-        icon: SupportIcon,
-        name: "Tickets",
-        path: "/tickets",
-      },
+
+
     ],
   },
 ];

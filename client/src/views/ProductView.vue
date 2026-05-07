@@ -4,7 +4,7 @@
     <div class="breadcrumb-container">
       <router-link to="/" class="breadcrumb-link">{{ t('product.home') }}</router-link>
       <span class="breadcrumb-sep">/</span>
-      <span class="breadcrumb-current">{{ product.name }}</span>
+      <span class="breadcrumb-current">{{ product.nombre }}</span>
     </div>
 
     <!-- Product Details -->
@@ -13,37 +13,97 @@
         <!-- Image Gallery -->
         <div class="product-image-col">
           <div class="main-image-container">
-            <img :src="product.image" :alt="product.name" class="main-image">
-            <span class="product-tag" v-if="product.tag">{{ product.tag }}</span>
+            <div v-if="!selectedImage" class="product-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="placeholder-icon">
+                <path d="M7 2L2 5V10H5V21H19V10H22V5L17 2H14C14 3.1 13.1 4 12 4C10.9 4 10 3.1 10 2H7Z" />
+              </svg>
+            </div>
+            <img v-else :src="selectedImage" :alt="product.nombre" class="main-image" :key="selectedImage">
+            <span class="product-tag" v-if="product.flag">{{ product.flag }}</span>
+          </div>
+
+          <!-- Thumbnails -->
+          <div class="gallery-thumbs" v-if="galleryImages.length > 1">
+            <button
+              v-for="(img, i) in galleryImages"
+              :key="i"
+              class="thumb-btn"
+              :class="{ active: selectedImage === img }"
+              @click="selectedImage = img"
+            >
+              <img :src="img" :alt="`${product.nombre} ${i + 1}`" class="thumb-img">
+            </button>
           </div>
         </div>
 
         <!-- Info & Controls -->
         <div class="product-info-col">
-          <span class="product-artist">{{ product.artist }}</span>
-          <h1 class="product-name-title">{{ product.name }}</h1>
-          <p class="product-price-large">{{ formatPrice(product.price) }}</p>
+          <span class="product-artist">{{ product.tienda }}</span>
+          <h1 class="product-name-title">{{ product.nombre }}</h1>
+          <p class="product-price-large">{{ formatPrice(displayPrice) }}</p>
 
           <p class="product-description">
-            {{ product.description || t('product.defaultDesc') }}
+            {{ product.descripcion || t('product.defaultDesc') }}
           </p>
 
           <div class="product-options">
-            <!-- Tallas -->
-            <div class="option-group">
-              <label class="option-label">{{ t('product.size') }}</label>
-              <div class="size-selector">
-                <button 
-                  v-for="size in ['S', 'M', 'L', 'XL', 'XXL']" 
-                  :key="size"
-                  class="size-btn"
-                  :class="{ active: selectedSize === size }"
-                  @click="selectedSize = size"
-                >
-                  {{ size }}
-                </button>
+            <!-- Grupos de atributos (Talla, Color, etc.) -->
+            <template v-if="product.es_variable && attrGroups.length > 0">
+              <div v-for="group in attrGroups" :key="group.nombre" class="option-group">
+                <label class="option-label">
+                  {{ group.nombre }}
+                  <span v-if="selectedAttrs[group.nombre]" class="selected-val"> — {{ selectedAttrs[group.nombre] }}</span>
+                </label>
+                <div class="size-selector">
+                  <!-- Swatches de color -->
+                  <template v-if="isColorGroup(group.nombre)">
+                    <button
+                      v-for="opt in getAvailableOptions(group.nombre)"
+                      :key="opt.valor"
+                      class="color-btn"
+                      :class="{ active: selectedAttrs[group.nombre] === opt.valor, unavailable: !opt.available }"
+                      :style="{ '--swatch': opt.color || '#aaaaaa' }"
+                      :title="opt.valor"
+                      :disabled="!opt.available"
+                      @click="selectAttr(group.nombre, opt.valor)"
+                    >
+                      <span class="color-swatch"></span>
+                    </button>
+                  </template>
+                  <!-- Botones de texto (tallas, etc.) -->
+                  <template v-else>
+                    <button
+                      v-for="opt in getAvailableOptions(group.nombre)"
+                      :key="opt.valor"
+                      class="size-btn"
+                      :class="{ active: selectedAttrs[group.nombre] === opt.valor, unavailable: !opt.available }"
+                      :disabled="!opt.available"
+                      @click="selectAttr(group.nombre, opt.valor)"
+                    >
+                      {{ opt.valor }}
+                    </button>
+                  </template>
+                </div>
               </div>
-            </div>
+            </template>
+
+            <!-- Fallback: lista plana (sin atributos definidos) -->
+            <template v-else-if="product.es_variable && variations.length > 0">
+              <div class="option-group">
+                <label class="option-label">{{ t('product.size') }}</label>
+                <div class="size-selector">
+                  <button
+                    v-for="v in variations"
+                    :key="v.id"
+                    class="size-btn"
+                    :class="{ active: selectedVariation?.id === v.id }"
+                    @click="selectVariationDirect(v)"
+                  >
+                    {{ v.valor }}
+                  </button>
+                </div>
+              </div>
+            </template>
 
             <!-- Cantidad -->
             <div class="option-group">
@@ -89,14 +149,19 @@
         <div class="related-grid">
           <router-link :to="`/producto/${relProduct.id}`" class="product-card" v-for="relProduct in relatedProducts" :key="relProduct.id">
             <div class="product-image-wrapper">
-              <img :src="relProduct.image" :alt="relProduct.name" class="product-image" loading="lazy">
-              <span class="product-tag" v-if="relProduct.tag">{{ relProduct.tag }}</span>
+              <div v-if="!relProduct.imagen_url" class="product-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="placeholder-icon-sm">
+                  <path d="M7 2L2 5V10H5V21H19V10H22V5L17 2H14C14 3.1 13.1 4 12 4C10.9 4 10 3.1 10 2H7Z" />
+                </svg>
+              </div>
+              <img v-else :src="relProduct.imagen_url" :alt="relProduct.nombre" class="product-image" loading="lazy">
+              <span class="product-tag" v-if="relProduct.flag">{{ relProduct.flag }}</span>
             </div>
             <div class="product-info">
-              <span class="product-artist">{{ relProduct.artist }}</span>
-              <h3 class="product-name">{{ relProduct.name }}</h3>
+              <span class="product-artist">{{ relProduct.tienda }}</span>
+              <h3 class="product-name">{{ relProduct.nombre }}</h3>
               <div class="product-footer">
-                <span class="product-price">{{ formatPrice(relProduct.price) }}</span>
+                <span class="product-price">{{ formatPrice(relProduct.precio) }}</span>
               </div>
             </div>
           </router-link>
@@ -107,55 +172,154 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { cartActions } from '../store/cart.js';
 import { useLocale } from '../composables/useLocale.js';
 import { formatPrice } from '../store/locale.js';
 
-const { t } = useLocale();
+const { t, tTag } = useLocale();
 
 const route = useRoute();
 
 // Estado
-const selectedSize = ref('M');
 const quantity = ref(1);
+const selectedImage = ref(null);
+const selectedAttrs = ref({});
+const selectedVariation = ref(null);
 
-// Mock Data
-const productsData = [
-  { id: 1, name: 'Playera Clásica Solara', artist: 'Solara', price: 450, image: '/images/product1.png', tag: 'Nuevo' },
-  { id: 2, name: 'Sudadera Tour 2026', artist: 'Los Amigos', price: 850, image: '/images/product2.png', tag: 'Agotado' },
-  { id: 3, name: 'Gorra Bordada', artist: 'Solara', price: 350, image: '/images/product3.png', tag: '' },
-  { id: 4, name: 'Totebag Eco', artist: 'Festival X', price: 250, image: '/images/product4.png', tag: 'Popular' }
-];
-
-const product = ref(productsData[0]);
+const product = ref({});
 const relatedProducts = ref([]);
+const variations = ref([]);
 
-const loadProduct = () => {
-  const id = parseInt(route.params.id) || 1;
-  const found = productsData.find(p => p.id === id);
-  product.value = found || productsData[0];
-  
-  // Fake related products
-  relatedProducts.value = productsData.filter(p => p.id !== product.value.id).slice(0, 4);
-  
-  // Reset scroll and state
+// Gallery: imagen principal + galería sin duplicados
+const galleryImages = computed(() => {
+  const imgs = [];
+  if (product.value.imagen_url) imgs.push(product.value.imagen_url);
+  const galeria = product.value.galeria_urls;
+  if (Array.isArray(galeria)) galeria.forEach(u => { if (u && !imgs.includes(u)) imgs.push(u); });
+  return imgs;
+});
+
+// Parsear atributos del producto
+const attrGroups = computed(() => {
+  const raw = product.value.atributos;
+  if (!raw) return [];
+  try { return Array.isArray(raw) ? raw : JSON.parse(raw); }
+  catch { return []; }
+});
+
+// Variaciones con attrs mapeados por grupo
+const parsedVariations = computed(() => {
+  const groups = attrGroups.value;
+  return variations.value.map(v => {
+    const parts = v.valor ? v.valor.split(' - ') : [];
+    const attrs = {};
+    groups.forEach((g, i) => { attrs[g.nombre] = parts[i] || ''; });
+    return { ...v, attrs };
+  });
+});
+
+const isColorGroup = (nombre) => nombre.toLowerCase().includes('color');
+
+// Opciones disponibles para un grupo dado las selecciones anteriores
+const getAvailableOptions = (groupNombre) => {
+  const groups = attrGroups.value;
+  const idx = groups.findIndex(g => g.nombre === groupNombre);
+  const group = groups[idx];
+  if (!group) return [];
+  const allOpts = (group.opciones || '').split(',').map(o => o.trim()).filter(Boolean);
+  const prevGroups = groups.slice(0, idx);
+  const relevant = parsedVariations.value.filter(v =>
+    prevGroups.every(pg => !selectedAttrs.value[pg.nombre] || v.attrs[pg.nombre] === selectedAttrs.value[pg.nombre])
+  );
+  return allOpts.map(opt => {
+    const match = relevant.find(v => v.attrs[groupNombre] === opt);
+    return { valor: opt, available: !!match, color: match?.color || group.colores?.[opt] || null };
+  });
+};
+
+const updateSelectedVariation = () => {
+  const groups = attrGroups.value;
+  if (!groups.every(g => selectedAttrs.value[g.nombre])) {
+    selectedVariation.value = null;
+    // Selección incompleta: mantener imagen principal del producto
+    selectedImage.value = product.value.imagen_url || null;
+    return;
+  }
+  const match = parsedVariations.value.find(v => groups.every(g => v.attrs[g.nombre] === selectedAttrs.value[g.nombre]));
+  selectedVariation.value = match || null;
+  // Solo cambiar imagen si la variación tiene su propia imagen
+  if (match?.imagen_url) {
+    selectedImage.value = match.imagen_url;
+  } else {
+    selectedImage.value = product.value.imagen_url || null;
+  }
+};
+
+const selectAttr = (groupNombre, valor) => {
+  selectedAttrs.value[groupNombre] = valor;
+  // Limpiar selecciones de grupos posteriores
+  const groups = attrGroups.value;
+  const idx = groups.findIndex(g => g.nombre === groupNombre);
+  groups.slice(idx + 1).forEach(g => { delete selectedAttrs.value[g.nombre]; });
+  // Auto-seleccionar siguiente grupo si solo hay una opción disponible
+  const nextGroup = groups[idx + 1];
+  if (nextGroup) {
+    const opts = getAvailableOptions(nextGroup.nombre).filter(o => o.available);
+    if (opts.length === 1) selectedAttrs.value[nextGroup.nombre] = opts[0].valor;
+  }
+  updateSelectedVariation();
+};
+
+const selectVariationDirect = (v) => {
+  selectedVariation.value = v;
+  selectedImage.value = v.imagen_url || product.value.imagen_url || null;
+};
+
+const initSelections = () => {
+  attrGroups.value.forEach(group => {
+    const opts = getAvailableOptions(group.nombre).filter(o => o.available);
+    if (opts.length > 0) selectedAttrs.value[group.nombre] = opts[0].valor;
+  });
+  updateSelectedVariation();
+};
+
+const displayPrice = computed(() => {
+  if (product.value.es_variable) {
+    if (selectedVariation.value) return selectedVariation.value.precio;
+    if (variations.value.length > 0) return variations.value[0].precio;
+  }
+  return product.value.precio;
+});
+
+const loadProduct = async () => {
+  const id = route.params.id;
+  try {
+    const res = await fetch(`/api/products/${id}`);
+    const data = await res.json();
+    product.value = data;
+    variations.value = data.variaciones || [];
+    selectedAttrs.value = {};
+    selectedVariation.value = null;
+    selectedImage.value = data.imagen_url || (Array.isArray(data.galeria_urls) && data.galeria_urls[0]) || null;
+    const allRes = await fetch('/api/products');
+    const allData = await allRes.json();
+    relatedProducts.value = allData.filter(p => p.tienda === data.tienda && p.id !== data.id && p.es_publico).slice(0, 4);
+    // No auto-seleccionar variaciones: el usuario elige desde cero
+    // La imagen inicial es siempre la imagen principal del producto
+  } catch (err) { console.error('Error loading product:', err); }
   window.scrollTo(0, 0);
-  selectedSize.value = 'M';
   quantity.value = 1;
 };
 
-onMounted(() => {
-  loadProduct();
-});
-
-watch(() => route.params.id, () => {
-  loadProduct();
-});
+onMounted(() => { loadProduct(); });
+watch(() => route.params.id, () => { loadProduct(); });
 
 const addToCart = () => {
-  cartActions.addItem(product.value, selectedSize.value, quantity.value);
+  const productToCart = { ...product.value, precio: displayPrice.value };
+  const label = Object.values(selectedAttrs.value).join(' - ') || selectedVariation.value?.valor || '';
+  cartActions.addItem(productToCart, label, quantity.value);
 };
 
 </script>
@@ -225,11 +389,77 @@ const addToCart = () => {
   padding: 40px;
 }
 
+/* Gallery Thumbnails */
+.gallery-thumbs {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.thumb-btn {
+  width: 72px;
+  height: 72px;
+  border-radius: 12px;
+  border: 2px solid var(--border-color);
+  background: white;
+  padding: 4px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  flex-shrink: 0;
+}
+
+.thumb-btn:hover {
+  border-color: #aaa;
+}
+
+.thumb-btn.active {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(35, 118, 80, 0.2);
+}
+
+.thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  display: block;
+}
+
 .main-image {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  transition: transform 0.5s ease;
+  transition: transform 0.5s ease, opacity 0.2s ease;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.product-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbbbbb;
+}
+
+.placeholder-icon {
+  width: 120px;
+  height: 120px;
+  opacity: 0.5;
+}
+
+.placeholder-icon-sm {
+  width: 60px;
+  height: 60px;
+  opacity: 0.5;
 }
 
 .main-image-container:hover .main-image {
@@ -342,6 +572,49 @@ const addToCart = () => {
   border-color: var(--primary-color);
   background: var(--primary-color);
   color: white;
+}
+
+.size-btn.unavailable {
+  opacity: 0.35;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.selected-val {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Color swatches */
+.color-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  background: transparent;
+  padding: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.color-btn.active {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--primary-color);
+}
+
+.color-btn.unavailable {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.color-swatch {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--swatch, #ccc);
+  border: 1px solid rgba(0,0,0,0.12);
 }
 
 .quantity-selector {

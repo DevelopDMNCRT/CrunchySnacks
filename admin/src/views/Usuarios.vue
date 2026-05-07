@@ -19,10 +19,9 @@
         <div class="px-6 py-5">
           <p class="text-sm text-gray-500 dark:text-gray-400">Gestiona los usuarios registrados en la plataforma.</p>
         </div>
-        <div class="border-t border-gray-100 dark:border-gray-800">
+      <div class="border-t border-gray-100 dark:border-gray-800">
           <UsersTable
             :usuarios="usuarios"
-            @ver="onVer"
             @editar="onEditar"
             @eliminar="onEliminar"
           />
@@ -34,38 +33,48 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import axios from 'axios';
 import AdminLayout from '@/components/layout/AdminLayout.vue';
 import UsersTable from '@/components/tables/UsersTable.vue';
 
 const router = useRouter();
+const usuarios = ref([]);
+const loading = ref(true);
 
-const generarId = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  const ids = new Set();
-  let id;
-  do {
-    id = Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
-  } while (ids.has(id));
-  ids.add(id);
-  return id;
+const fetchUsuarios = async () => {
+  try {
+    const response = await axios.get('/api/users');
+    // Mapear created_at a fecha para el componente tabla
+    usuarios.value = response.data.map(u => ({
+      ...u,
+      fecha: new Date(u.created_at).toLocaleDateString('es-MX', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      })
+    }));
+  } catch (err) {
+    console.error('Error fetching users:', err);
+  } finally {
+    loading.value = false;
+  }
 };
 
-const usuarios = ref([
-  { id: generarId(), nombre: 'Carlos Ramírez',   correo: 'carlos@arigomerch.mx',  fecha: '10 Ene 2025', rol: 'Admin'   },
-  { id: generarId(), nombre: 'Laura González',   correo: 'laura@arigomerch.mx',   fecha: '15 Ene 2025', rol: 'Editor'  },
-  { id: generarId(), nombre: 'Diego Hernández',  correo: 'diego@arigomerch.mx',   fecha: '02 Feb 2025', rol: 'Viewer'  },
-  { id: generarId(), nombre: 'Sofía Torres',     correo: 'sofia@arigomerch.mx',   fecha: '18 Feb 2025', rol: 'Editor'  },
-  { id: generarId(), nombre: 'Miguel Sánchez',   correo: 'miguel@arigomerch.mx',  fecha: '05 Mar 2025', rol: 'Viewer'  },
-  { id: generarId(), nombre: 'Valentina López',  correo: 'vale@arigomerch.mx',    fecha: '21 Mar 2025', rol: 'Admin'   },
-]);
+onMounted(fetchUsuarios);
 
-const onVer     = (u) => router.push(`/usuarios/${u.id}`);
 const onEditar  = (u) => router.push(`/usuarios/${u.id}/editar`);
-const onEliminar = (u) => {
+
+const onEliminar = async (u) => {
   if (confirm(`¿Eliminar a ${u.nombre}?`)) {
-    usuarios.value = usuarios.value.filter(x => x.id !== u.id);
+    try {
+      await axios.delete(`/api/users/${u.id}`);
+      usuarios.value = usuarios.value.filter(x => x.id !== u.id);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      alert('Error al eliminar el usuario');
+    }
   }
 };
 </script>

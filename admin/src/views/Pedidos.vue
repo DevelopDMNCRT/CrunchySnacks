@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AdminLayout from '@/components/layout/AdminLayout.vue';
 import PedidosTable from '@/components/tables/PedidosTable.vue';
@@ -67,36 +67,42 @@ import PedidosTable from '@/components/tables/PedidosTable.vue';
 const router = useRouter();
 const pagina    = ref(1);
 const porPagina = 10;
+const pedidos = ref([]);
+const loading = ref(true);
 
-const estados  = ['Nuevo', 'En proceso', 'Completado', 'Fallido', 'Cancelado'];
-const ciudades = ['CDMX', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'Querétaro', 'Mérida'];
-const clientes = [
-  'Ana Ruiz','Carlos Méndez','Laura Torres','Diego Herrera','Sofía Vargas',
-  'Miguel Reyes','Valentina Cruz','Andrés Leal','Camila Mora','Javier Ponce',
-  'Elena Rios','Fernando Díaz','Isabella Soto','Rodrigo Núñez','Daniela Ortiz',
-  'Emilio Vega','Mariana Fuentes','Tomás Gil','Natalia Romero','Pablo Acosta',
-  'Lucía Flores','Sebastián Peña','Renata Castro','Óscar Moreno','Xiomara Rubio',
-];
-const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const fecha = (i) => {
-  const d = new Date(2025, Math.floor(i / 2) % 12, (i % 28) + 1);
-  return `${d.getDate().toString().padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+const fetchPedidos = async () => {
+  try {
+    const res = await fetch('/api/pedidos');
+    const data = await res.json();
+    pedidos.value = data.map(p => {
+      const d = new Date(p.created_at);
+      const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+      const fechaFormateada = `${d.getDate().toString().padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+      return {
+        id: p.id,
+        orden: p.orden,
+        cliente: p.nombre,
+        fecha: fechaFormateada,
+        ciudad: p.ciudad || 'No especificada',
+        total: parseFloat(p.total),
+        estado: p.estado
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching pedidos:', error);
+  } finally {
+    loading.value = false;
+  }
 };
 
-const pedidos = Array.from({ length: 25 }, (_, i) => ({
-  id:      i + 1,
-  orden:   String(i + 1).padStart(6, '0'),
-  cliente: clientes[i],
-  fecha:   fecha(i),
-  ciudad:  ciudades[i % ciudades.length],
-  total:   Math.floor(Math.random() * 4500 + 299),
-  estado:  estados[i % estados.length],
-}));
+onMounted(() => {
+  fetchPedidos();
+});
 
-const total        = computed(() => pedidos.length);
+const total        = computed(() => pedidos.value.length);
 const totalPaginas = computed(() => Math.ceil(total.value / porPagina));
 const desde        = computed(() => (pagina.value - 1) * porPagina);
-const paginados    = computed(() => pedidos.slice(desde.value, desde.value + porPagina));
+const paginados    = computed(() => pedidos.value.slice(desde.value, desde.value + porPagina));
 const paginas      = computed(() => Array.from({ length: totalPaginas.value }, (_, i) => i + 1));
 
 const irAlDetalle = (pedido) => router.push(`/pedidos/${pedido.id}`);

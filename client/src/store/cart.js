@@ -19,13 +19,17 @@ export const cartActions = {
       existingItem.quantity += quantity;
     } else {
       cartState.items.push({
-        ...product,
+        id: product.id,
+        name: product.nombre ?? product.name,
+        image: product.imagen_url ?? product.image,
+        price: Number(product.precio ?? product.price ?? 0),
+        tienda: product.tienda ?? product.artist,
         size,
         quantity,
         cartItemId: Date.now() + Math.random().toString(36).substr(2, 9)
       });
     }
-    cartState.isOpen = true; // Automatically open cart drawer
+    cartState.isOpen = true;
   },
   removeItem(cartItemId) {
     cartState.items = cartState.items.filter(item => item.cartItemId !== cartItemId);

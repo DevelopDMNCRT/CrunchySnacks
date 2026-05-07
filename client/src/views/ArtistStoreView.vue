@@ -33,17 +33,22 @@
           :key="product.id"
         >
           <div class="product-image-wrapper">
-            <img :src="product.image" :alt="product.name" class="product-image" loading="lazy">
-            <span class="product-tag" v-if="product.tag">{{ product.tag }}</span>
+            <div v-if="!product.imagen_url" class="product-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="placeholder-icon">
+                <path d="M7 2L2 5V10H5V21H19V10H22V5L17 2H14C14 3.1 13.1 4 12 4C10.9 4 10 3.1 10 2H7Z" />
+              </svg>
+            </div>
+            <img v-else :src="product.imagen_url" :alt="product.nombre" class="product-image" loading="lazy">
+            <span class="product-tag" v-if="product.flag">{{ product.flag }}</span>
             <div class="product-overlay">
               <button class="overlay-btn">{{ t('store.viewProduct') }}</button>
             </div>
           </div>
           <div class="product-info">
             <span class="product-artist">{{ storeInfo.name }}</span>
-            <h3 class="product-name">{{ product.name }}</h3>
+            <h3 class="product-name">{{ product.nombre }}</h3>
             <div class="product-footer">
-              <span class="product-price">{{ formatPrice(product.price) }}</span>
+              <span class="product-price">{{ formatPrice(product.precio) }}</span>
             </div>
           </div>
         </router-link>
@@ -58,7 +63,7 @@ import { useRoute } from 'vue-router'
 import { useLocale } from '../composables/useLocale.js'
 import { formatPrice } from '../store/locale.js'
 
-const { t } = useLocale()
+const { t, tTag } = useLocale()
 
 const route = useRoute()
 
@@ -71,16 +76,7 @@ const storeInfo = ref({
 })
 
 // Mock de Productos con fecha y precio para demostrar los filtros
-const products = ref([
-  { id: 10, name: 'Playera Tour 2026', price: 450, image: '/images/product1.png', tag: 'Nuevo', date: '2026-04-20' },
-  { id: 11, name: 'Sudadera Clásica', price: 850, image: '/images/product2.png', tag: 'Agotado', date: '2026-03-15' },
-  { id: 12, name: 'Gorra Bordada', price: 350, image: '/images/product3.png', tag: '', date: '2026-02-10' },
-  { id: 13, name: 'Totebag Eco', price: 250, image: '/images/product4.png', tag: 'Popular', date: '2026-04-05' },
-  { id: 14, name: 'Póster Firmado', price: 150, image: '/images/product1.png', tag: '', date: '2026-01-20' },
-  { id: 15, name: 'Taza Oficial', price: 200, image: '/images/product2.png', tag: '', date: '2025-12-10' },
-  { id: 16, name: 'Llavero Metálico', price: 100, image: '/images/product3.png', tag: '', date: '2026-04-10' },
-  { id: 17, name: 'Vinilo Edición Limitada', price: 1200, image: '/images/product4.png', tag: 'Premium', date: '2026-04-22' }
-])
+const products = ref([])
 
 const sortBy = ref('populares')
 
@@ -88,17 +84,17 @@ const sortedProducts = computed(() => {
   const list = [...products.value]
   switch (sortBy.value) {
     case 'priceAsc':
-      return list.sort((a, b) => a.price - b.price)
+      return list.sort((a, b) => a.precio - b.precio)
     case 'priceDesc':
-      return list.sort((a, b) => b.price - a.price)
+      return list.sort((a, b) => b.precio - a.precio)
     case 'alphaAsc':
-      return list.sort((a, b) => a.name.localeCompare(b.name))
+      return list.sort((a, b) => a.nombre.localeCompare(b.nombre))
     case 'alphaDesc':
-      return list.sort((a, b) => b.name.localeCompare(a.name))
+      return list.sort((a, b) => b.nombre.localeCompare(a.nombre))
     case 'dateDesc':
-      return list.sort((a, b) => new Date(b.date) - new Date(a.date))
+      return list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     case 'dateAsc':
-      return list.sort((a, b) => new Date(a.date) - new Date(b.date))
+      return list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     default:
       return list // populares (orden original o algorítmico)
   }
@@ -108,24 +104,31 @@ const slugify = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
 }
 
-const allArtists = [
-  'Caloncho', 'Andrés Obregón', 'Bruses', 'Juan Gabriel', 'XG', 'Vanessa Zamora',
-  'Kevin Kaarl', 'Esteman', 'Joliette', 'Los Rumberos', 'Siamés', 'Kakkmadafakka',
-  'María Centeno', 'Sofía Campos', 'Carla Morrison', 'La Isla Centeno', 'Bratty', 'The Blaze'
-]
-
-onMounted(() => {
-  // Obtener el slug de la URL
+onMounted(async () => {
   const slug = route.params.name || ''
   
-  // Buscar el artista cuyo slug coincide
-  const foundArtist = allArtists.find(a => slugify(a) === slug)
-  
-  storeInfo.value.name = foundArtist ? foundArtist : (slug ? slug : 'Tienda Oficial')
-  
-  // Usamos una imagen artística
-  storeInfo.value.coverImage = '/images/maquila.png' 
-  
+  try {
+    const storesRes = await fetch('/api/tiendas')
+    const storesData = await storesRes.json()
+    const foundStore = storesData.find(s => slugify(s.nombre) === slug)
+
+    if (foundStore) {
+      storeInfo.value.name = foundStore.nombre
+      storeInfo.value.coverImage = foundStore.header_url || foundStore.imagen_url || '/images/maquila.png'
+    } else {
+      storeInfo.value.name = slug ? slug : 'Tienda Oficial'
+      storeInfo.value.coverImage = '/images/maquila.png'
+    }
+
+    const prodRes = await fetch('/api/products')
+    const prodData = await prodRes.json()
+    // Filtrar los productos de esta tienda
+    products.value = prodData.filter(p => slugify(p.tienda) === slug && p.es_publico)
+
+  } catch (err) {
+    console.error('Error fetching data:', err)
+  }
+
   // Scrollear arriba
   window.scrollTo(0, 0)
 })
@@ -285,6 +288,22 @@ onMounted(() => {
   height: 100%;
   object-fit: cover;
   transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.product-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbbbbb;
+}
+
+.placeholder-icon {
+  width: 60px;
+  height: 60px;
+  opacity: 0.5;
 }
 
 .product-card:hover .product-image {

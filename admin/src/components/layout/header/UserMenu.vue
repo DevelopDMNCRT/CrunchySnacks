@@ -7,7 +7,7 @@
       <span class="mr-3 flex items-center justify-center rounded-full h-11 w-11 bg-gray-100 dark:bg-gray-800">
         <UserCircleIcon class="h-6 w-6 text-gray-500 dark:text-gray-400" />
       </span>
-      <span class="block mr-1 font-medium text-theme-sm">Musharof </span>
+      <span class="block mr-1 font-medium text-theme-sm">{{ admin?.username ?? 'Admin' }}</span>
 
       <ChevronDownIcon :class="{ 'rotate-180': dropdownOpen }" />
     </button>
@@ -19,10 +19,10 @@
     >
       <div>
         <span class="block font-medium text-gray-700 text-theme-sm dark:text-gray-400">
-          Musharof Chowdhury
+          {{ admin?.username ?? 'Admin' }}
         </span>
         <span class="mt-0.5 block text-theme-xs text-gray-500 dark:text-gray-400">
-          randomuser@pimjo.com
+          {{ admin?.email ?? '' }}
         </span>
       </div>
 
@@ -43,14 +43,16 @@
 </template>
 
 <script setup>
-import { UserCircleIcon, ChevronDownIcon, LogoutIcon, SettingsIcon, InfoCircleIcon } from '@/icons'
-import { RouterLink } from 'vue-router'
+import { UserCircleIcon, ChevronDownIcon, LogoutIcon } from '@/icons'
+import { RouterLink, useRouter } from 'vue-router'
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useAuth } from '@/composables/useAuth'
+
+const { admin, logout } = useAuth()
+const router = useRouter()
 
 const dropdownOpen = ref(false)
 const dropdownRef = ref(null)
-
-
 
 const toggleDropdown = () => {
   dropdownOpen.value = !dropdownOpen.value
@@ -61,9 +63,9 @@ const closeDropdown = () => {
 }
 
 const signOut = () => {
-  // Implement sign out logic here
-  console.log('Signing out...')
+  logout()
   closeDropdown()
+  router.push('/signin')
 }
 
 const handleClickOutside = (event) => {

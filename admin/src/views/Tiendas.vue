@@ -57,8 +57,9 @@
 
                   <!-- Imagen -->
                   <td class="px-5 py-4 sm:px-6">
-                    <div class="w-10 h-10 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 flex-shrink-0">
-                      <img :src="tienda.imagen" :alt="tienda.nombre" class="w-full h-full object-cover" />
+                    <div class="w-10 h-10 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700 flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                      <img v-if="tienda.imagen_url" :src="tienda.imagen_url" :alt="tienda.nombre" class="w-full h-full object-cover" />
+                      <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-400"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
                     </div>
                   </td>
 
@@ -71,26 +72,18 @@
 
                   <!-- Fecha -->
                   <td class="px-5 py-4 sm:px-6">
-                    <span class="text-gray-500 text-theme-sm dark:text-gray-400">{{ tienda.fecha }}</span>
+                    <span class="text-gray-500 text-theme-sm dark:text-gray-400">{{ formatDate(tienda.created_at) }}</span>
                   </td>
 
                   <!-- Acciones -->
                   <td class="px-5 py-4 sm:px-6">
                     <div class="flex items-center gap-2">
-                      <!-- Ver -->
-                      <button title="Ver" class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-brand-500/10 dark:hover:text-brand-400 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      </button>
                       <!-- Editar -->
-                      <button title="Editar" class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-blue-light-50 hover:text-blue-light-500 dark:text-gray-400 dark:hover:bg-blue-light-500/10 dark:hover:text-blue-light-400 transition-colors">
+                      <router-link :to="`/tiendas/${tienda.id}`" title="Editar" class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-blue-light-50 hover:text-blue-light-500 dark:text-gray-400 dark:hover:bg-blue-light-500/10 dark:hover:text-blue-light-400 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <!-- Ocultar -->
-                      <button title="Ocultar" class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-warning-50 hover:text-warning-600 dark:text-gray-400 dark:hover:bg-warning-500/10 dark:hover:text-warning-400 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
-                      </button>
+                      </router-link>
                       <!-- Eliminar -->
-                      <button title="Eliminar" class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-error-50 hover:text-error-500 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400 transition-colors">
+                      <button @click="eliminar(tienda)" title="Eliminar" class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-error-50 hover:text-error-500 dark:text-gray-400 dark:hover:bg-error-500/10 dark:hover:text-error-400 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                       </button>
                     </div>
@@ -106,19 +99,42 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import AdminLayout from "@/components/layout/AdminLayout.vue";
+import axios from "axios";
 
-const generarId = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  return Array.from({ length: 5 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+const tiendas = ref([]);
+const loading = ref(true);
+
+const fetchTiendas = async () => {
+  loading.value = true;
+  try {
+    const res = await axios.get('/api/tiendas');
+    tiendas.value = res.data;
+  } catch (err) {
+    console.error('Error fetching tiendas:', err);
+  } finally {
+    loading.value = false;
+  }
 };
 
-const tiendas = ref([
-  { id: generarId(), imagen: '/images/product/product-01.jpg', nombre: 'Tienda Rock Central', fecha: '12 Ene 2025' },
-  { id: generarId(), imagen: '/images/product/product-02.jpg', nombre: 'Metal & Co.',           fecha: '03 Feb 2025' },
-  { id: generarId(), imagen: '/images/product/product-03.jpg', nombre: 'Pop Merch Store',       fecha: '22 Feb 2025' },
-  { id: generarId(), imagen: '/images/product/product-04.jpg', nombre: 'Urban Beats',           fecha: '07 Mar 2025' },
-  { id: generarId(), imagen: '/images/product/product-05.jpg', nombre: 'Indie Threads',         fecha: '15 Mar 2025' },
-]);
+onMounted(fetchTiendas);
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('es-MX', {
+    day: '2-digit', month: 'short', year: 'numeric'
+  });
+};
+
+const eliminar = async (t) => {
+  if (!confirm(`¿Estás seguro de eliminar la tienda "${t.nombre}"?`)) return;
+  try {
+    await axios.delete(`/api/tiendas/${t.id}`);
+    fetchTiendas();
+  } catch (err) {
+    console.error('Error al eliminar tienda:', err);
+    alert('No se pudo eliminar la tienda');
+  }
+};
 </script>

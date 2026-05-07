@@ -2,36 +2,36 @@
   <main class="checkout-view">
     <div class="checkout-container">
       <div class="checkout-header">
-        <h1>Finalizar Compra</h1>
-        <p>Estás a un paso de obtener tu merch. Completa tu información de envío.</p>
+        <h1>{{ t('checkout.title') }}</h1>
+        <p>{{ t('checkout.subtitle') }}</p>
       </div>
 
       <div class="checkout-content">
         <!-- Formulario -->
         <div class="checkout-form-section">
-          <h2>Datos de Contacto</h2>
+          <h2>{{ t('checkout.contactData') }}</h2>
           <form class="checkout-form" @submit.prevent="processCheckout">
             
             <div class="form-row">
               <div class="form-group">
-                <label>Nombre Completo</label>
+                <label>{{ t('checkout.fullName') }}</label>
                 <input type="text" required placeholder="Juan Pérez" v-model="form.nombre" class="form-input">
               </div>
               <div class="form-group">
-                <label>Teléfono</label>
+                <label>{{ t('checkout.phone') }}</label>
                 <input type="tel" required placeholder="(55) 1234 5678" v-model="form.telefono" class="form-input">
               </div>
             </div>
 
             <div class="form-group">
-              <label>Correo Electrónico</label>
+              <label>{{ t('checkout.email') }}</label>
               <input type="email" required placeholder="tu@correo.com" v-model="form.correo" class="form-input">
             </div>
 
-            <h2 class="mt-4">Dirección de Envío</h2>
+            <h2 class="mt-4">{{ t('checkout.shippingAddress') }}</h2>
             
             <div class="form-group">
-              <label>País</label>
+              <label>{{ t('checkout.country') }}</label>
               <select required class="form-input" v-model="form.pais" @change="onPaisChange">
                 <option value="México">México</option>
                 <option value="Estados Unidos">Estados Unidos</option>
@@ -44,46 +44,46 @@
 
             <div class="form-row">
               <div class="form-group">
-                <label>Estado / Provincia</label>
+                <label>{{ t('checkout.stateProvince') }}</label>
                 <select required class="form-input" v-model="form.estado">
-                  <option value="" disabled selected>Selecciona un estado</option>
+                  <option value="" disabled selected>{{ t('checkout.selectState') }}</option>
                   <option v-for="estado in currentStates" :key="estado" :value="estado">{{ estado }}</option>
                 </select>
               </div>
               <div class="form-group">
-                <label>Ciudad</label>
+                <label>{{ t('checkout.city') }}</label>
                 <input type="text" required placeholder="Ej. Monterrey" v-model="form.ciudad" class="form-input">
               </div>
             </div>
 
             <div class="form-row mt-3">
               <div class="form-group" style="flex: 2;">
-                <label>Calle / Domicilio</label>
+                <label>{{ t('checkout.street') }}</label>
                 <input type="text" required placeholder="Av. Insurgentes Sur" v-model="form.calle" class="form-input">
               </div>
               <div class="form-group" style="flex: 1;">
-                <label>Núm. Ext</label>
+                <label>{{ t('checkout.numExt') }}</label>
                 <input type="text" required placeholder="123" v-model="form.numExt" class="form-input">
               </div>
               <div class="form-group" style="flex: 1;">
-                <label>Núm. Int (Opc.)</label>
+                <label>{{ t('checkout.numInt') }}</label>
                 <input type="text" placeholder="Apto 4" v-model="form.numInt" class="form-input">
               </div>
             </div>
 
             <div class="form-row">
               <div class="form-group">
-                <label>Colonia</label>
+                <label>{{ t('checkout.colonia') }}</label>
                 <input type="text" required placeholder="Roma Norte" v-model="form.colonia" class="form-input">
               </div>
               <div class="form-group">
-                <label>Código Postal</label>
+                <label>{{ t('checkout.postalCode') }}</label>
                 <input type="text" required placeholder="06700" v-model="form.cp" class="form-input">
               </div>
             </div>
 
             <div class="form-group">
-              <label>Notas adicionales (Opcional)</label>
+              <label>{{ t('checkout.notes') }}</label>
               <textarea placeholder="Ej. Dejar con el guardia, casa color azul con reja blanca..." rows="2" v-model="form.notas" class="form-input"></textarea>
             </div>
 
@@ -92,61 +92,45 @@
                 <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                 <circle cx="12" cy="10" r="3"></circle>
               </svg>
-              Agregar localización
+              {{ t('checkout.addLocation') }}
             </button>
 
-            <h2 class="mt-4">Método de Pago</h2>
-            <div class="payment-methods">
-              <label class="payment-option">
-                <input type="radio" name="payment" value="card" checked>
-                <span>Tarjeta de Crédito / Débito</span>
-              </label>
-              <label class="payment-option">
-                <input type="radio" name="payment" value="paypal">
-                <span>PayPal</span>
-              </label>
-              <label class="payment-option">
-                <input type="radio" name="payment" value="oxxo">
-                <span>Pago en OXXO</span>
-              </label>
-            </div>
-
-            <button type="submit" class="pay-btn" :disabled="cartState.items.length === 0">
-              Pagar ${{ fmt(cartGetters.totalPrice.value + 150) }} MXN
+            <button type="submit" class="pay-btn" :disabled="cartState.items.length === 0 || loading">
+              {{ loading ? 'Procesando...' : 'Confirmar Pedido' }}
             </button>
           </form>
         </div>
 
         <!-- Resumen -->
         <div class="checkout-summary-section">
-          <h2>Resumen del Pedido</h2>
+          <h2>{{ t('checkout.orderSummary') }}</h2>
           
           <div class="cart-items-summary" v-if="cartState.items.length > 0">
             <div class="summary-item" v-for="item in cartState.items" :key="item.cartItemId">
               <img :src="item.image" :alt="item.name">
               <div class="summary-item-info">
                 <h4>{{ item.name }}</h4>
-                <p>Talla: {{ item.size }} | Cantidad: {{ item.quantity }}</p>
-                <span class="summary-item-price">${{ fmt(item.price * item.quantity) }} MXN</span>
+                <p>{{ t('checkout.sizeLabel') }}: {{ item.size }} | {{ t('checkout.quantityLabel') }}: {{ item.quantity }}</p>
+                <span class="summary-item-price">{{ formatPrice(item.price * item.quantity) }}</span>
               </div>
             </div>
           </div>
           <div v-else class="empty-summary">
-            <p>No hay productos en tu pedido.</p>
+            <p>{{ t('checkout.emptyCart') }}</p>
           </div>
 
           <div class="summary-totals">
             <div class="total-row">
-              <span>Subtotal</span>
-              <span>${{ fmt(cartGetters.totalPrice.value) }} MXN</span>
+              <span>{{ t('checkout.subtotal') }}</span>
+              <span>{{ formatPrice(cartGetters.totalPrice.value) }}</span>
             </div>
             <div class="total-row">
-              <span>Envío</span>
-              <span>$150 MXN</span>
+              <span>{{ t('checkout.shipping') }}</span>
+              <span>{{ formatPrice(150) }}</span>
             </div>
             <div class="total-row grand-total">
-              <span>Total</span>
-              <span>${{ fmt(cartGetters.totalPrice.value + 150) }} MXN</span>
+              <span>{{ t('checkout.total') }}</span>
+              <span>{{ formatPrice(cartGetters.totalPrice.value + 150) }}</span>
             </div>
           </div>
         </div>
@@ -159,15 +143,15 @@
         <div v-if="isMapModalOpen" class="map-modal-overlay" @click.self="closeMapModal">
           <div class="map-modal-content">
             <div class="map-modal-header">
-              <h3>Confirma tu ubicación</h3>
+              <h3>{{ t('checkout.confirmLocationTitle') }}</h3>
               <button @click="closeMapModal" class="close-modal-btn" aria-label="Cerrar">&times;</button>
             </div>
             <div class="map-modal-body">
-              <p class="map-hint">Mueve el pin amarillo para señalar el punto exacto de entrega.</p>
+              <p class="map-hint">{{ t('checkout.mapHint') }}</p>
               <div id="modal-map" class="map-container"></div>
             </div>
             <div class="map-modal-footer">
-              <button @click="confirmLocation" class="confirm-location-btn">Guardar Ubicación</button>
+              <button @click="confirmLocation" class="confirm-location-btn">{{ t('checkout.saveLocation') }}</button>
             </div>
           </div>
         </div>
@@ -180,6 +164,10 @@
 import { onMounted, ref, reactive, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { cartState, cartGetters, cartActions } from '../store/cart.js'
+import { useLocale } from '../composables/useLocale.js'
+import { formatPrice } from '../store/locale.js'
+
+const { t } = useLocale()
 
 const router = useRouter()
 
@@ -327,12 +315,64 @@ onMounted(() => {
   }
 })
 
-const fmt = (n) => n.toLocaleString('es-MX')
+const loading = ref(false)
 
-const processCheckout = () => {
-  alert('¡Pago procesado con éxito! Gracias por tu compra en Amigo Merch.')
-  cartActions.clearCart()
-  router.push('/')
+const processCheckout = async () => {
+  if (cartState.items.length === 0) return;
+  loading.value = true;
+  
+  try {
+    const subtotal = cartGetters.totalPrice.value;
+    const envio = 150; // TODO: Calculate based on logic
+    const total = subtotal + envio;
+
+    // Build address string
+    const parts = [];
+    if (form.calle) parts.push(`${form.calle} ${form.numExt} ${form.numInt ? 'Int. ' + form.numInt : ''}`.trim());
+    if (form.colonia) parts.push(`Col. ${form.colonia}`);
+    if (form.ciudad) parts.push(form.ciudad);
+    if (form.estado) parts.push(form.estado);
+    if (form.cp) parts.push(`C.P. ${form.cp}`);
+    if (form.pais) parts.push(form.pais);
+    const domicilio = parts.join(', ');
+
+    const items = cartState.items.map(item => ({
+      id: item.cartItemId,
+      producto_id: item.id,
+      nombre: item.name,
+      variante: item.size,
+      imagen: item.image,
+      precio: item.price,
+      cantidad: item.quantity
+    }));
+
+    const payload = {
+      ...form,
+      estado_env: form.estado,
+      domicilio,
+      items,
+      subtotal,
+      envio,
+      total
+    };
+
+    const res = await fetch('/api/pedidos', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error('Error al crear el pedido');
+
+    alert('¡Pedido confirmado exitosamente!');
+    cartActions.clearCart();
+    router.push('/');
+  } catch (error) {
+    console.error(error);
+    alert('Ocurrió un error al procesar el pedido. Intenta nuevamente.');
+  } finally {
+    loading.value = false;
+  }
 }
 </script>
 

@@ -1,60 +1,67 @@
 <script setup>
+import { ref, onMounted } from 'vue'
+import { useLocale } from '../composables/useLocale.js'
+import { formatPrice } from '../store/locale.js'
+
+const { t, tTag } = useLocale()
+
 const encode = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
 }
 
-const artists = [
-  { name: 'Caloncho', image: '/images/artist1.png' },
-  { name: 'Andrés Obregón', image: '/images/artist2.png' },
-  { name: 'Bruses', image: '/images/artist1.png' },
-  { name: 'Juan Gabriel', image: '/images/artist2.png' },
-  { name: 'XG', image: '/images/artist1.png' },
-  { name: 'Vanessa Zamora', image: '/images/artist2.png' },
-  { name: 'Kevin Kaarl', image: '/images/artist1.png' },
-  { name: 'Esteman', image: '/images/artist2.png' },
-  { name: 'Joliette', image: '/images/artist1.png' },
-  { name: 'Los Rumberos', image: '/images/artist2.png' },
-  { name: 'Siamés', image: '/images/artist1.png' },
-  { name: 'Kakkmadafakka', image: '/images/artist2.png' },
-  { name: 'María Centeno', image: '/images/artist1.png' },
-  { name: 'Sofía Campos', image: '/images/artist2.png' },
-  { name: 'Carla Morrison', image: '/images/artist1.png' },
-  { name: 'La Isla Centeno', image: '/images/artist2.png' },
-  { name: 'Bratty', image: '/images/artist1.png' },
-  { name: 'The Blaze', image: '/images/artist2.png' }
-]
+const stores = ref([])
+const products = ref([])
 
-import { useLocale } from '../composables/useLocale.js'
-import { formatPrice } from '../store/locale.js'
+// Newsletter
+const nlNombre = ref('')
+const nlCorreo = ref('')
+const nlLoading = ref(false)
+const nlMessage = ref(null)  // { type: 'success'|'error', text: '' }
 
-const { t } = useLocale()
-
-const products = [
-  {
-    id: 1,
-    name: 'Midnight Cult Tee',
-    artist: 'Caloncho',
-    price: 599,
-    image: '/images/product1.png',
-    tag: 'Más Vendido'
-  },
-  {
-    id: 2,
-    name: 'Sonic Eclipse Tour Tee',
-    artist: 'Kevin Kaarl',
-    price: 649,
-    image: '/images/product2.png',
-    tag: 'Edición Limitada'
-  },
-  {
-    id: 3,
-    name: 'Night Shade Rock Tee',
-    artist: 'Bratty',
-    price: 699,
-    image: '/images/product3.png',
-    tag: 'Nuevo'
+async function submitNewsletter() {
+  if (!nlNombre.value.trim() || !nlCorreo.value.trim()) return
+  nlLoading.value = true
+  nlMessage.value = null
+  try {
+    const res = await fetch('/api/suscriptores', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre: nlNombre.value.trim(), correo: nlCorreo.value.trim() })
+    })
+    const data = await res.json()
+    if (res.ok) {
+      nlMessage.value = { type: 'success', text: t('home.newsletterSuccess') }
+      nlNombre.value = ''
+      nlCorreo.value = ''
+    } else if (res.status === 400 && data.error && data.error.includes('registrado')) {
+      nlMessage.value = { type: 'error', text: t('home.newsletterDuplicate') }
+    } else {
+      nlMessage.value = { type: 'error', text: t('home.newsletterError') }
+    }
+  } catch {
+    nlMessage.value = { type: 'error', text: t('home.newsletterError') }
+  } finally {
+    nlLoading.value = false
   }
-]
+}
+
+onMounted(async () => {
+  try {
+    const resStores = await fetch('/api/tiendas')
+    const dataStores = await resStores.json()
+    console.log('Stores loaded:', dataStores)
+    // Nos aseguramos de capturar tanto booleanos como strings "true" o 1
+    stores.value = dataStores.filter(t => t.publico === true || t.publico === 'true' || t.publico === 1)
+    console.log('Filtered stores:', stores.value)
+
+    const resProducts = await fetch('/api/products')
+    const dataProducts = await resProducts.json()
+    // Mostrar solo algunos para "Lo más buscado"
+    products.value = dataProducts.filter(p => p.es_publico).slice(0, 4)
+  } catch (err) {
+    console.error('Error fetching data:', err)
+  }
+})
 </script>
 
 <template>
@@ -85,11 +92,11 @@ const products = [
       <div class="container catalog-container">
         <h2 class="section-title">{{ t('home.ourStores') }}</h2>
         <div class="artist-grid">
-          <router-link :to="`/tienda/${encode(artist.name)}`" class="artist-card" v-for="(artist, index) in artists" :key="index">
+          <router-link :to="`/tienda/${encode(store.nombre)}`" class="artist-card" v-for="store in stores" :key="store.id">
             <div class="artist-image-wrapper">
-              <img :src="artist.image" :alt="artist.name" class="artist-image" loading="lazy">
+              <img :src="store.imagen_url || '/images/artist1.png'" :alt="store.nombre" class="artist-image" loading="lazy">
             </div>
-            <h3 class="artist-name">{{ artist.name }}</h3>
+            <h3 class="artist-name">{{ store.nombre }}</h3>
           </router-link>
         </div>
       </div>
@@ -100,22 +107,52 @@ const products = [
       <div class="newsletter-container">
         <h2 class="newsletter-title">{{ t('home.newsletterTitle') }}</h2>
         <p class="newsletter-sub">{{ t('home.newsletterDesc') }}</p>
-        <form class="newsletter-form" @submit.prevent>
-          <div class="input-wrapper">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-            <input
-              type="email"
-              class="newsletter-input"
-              :placeholder="t('home.newsletterPlaceholder')"
-              :aria-label="t('home.newsletterPlaceholder')"
-              required
-            />
+        <form class="newsletter-form" @submit.prevent="submitNewsletter">
+          <!-- Name input -->
+          <div class="nl-fields">
+            <div class="input-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                <circle cx="12" cy="7" r="4"/>
+              </svg>
+              <input
+                id="nl-nombre"
+                v-model="nlNombre"
+                type="text"
+                class="newsletter-input"
+                :placeholder="t('home.newsletterNamePlaceholder')"
+                :aria-label="t('home.newsletterNameLabel')"
+                required
+              />
+            </div>
+            <!-- Email input -->
+            <div class="input-wrapper">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <input
+                id="nl-correo"
+                v-model="nlCorreo"
+                type="email"
+                class="newsletter-input"
+                :placeholder="t('home.newsletterPlaceholder')"
+                :aria-label="t('home.newsletterPlaceholder')"
+                required
+              />
+            </div>
           </div>
-          <button type="submit" class="newsletter-btn">{{ t('home.newsletterBtn') }}</button>
+          <button type="submit" class="newsletter-btn" :disabled="nlLoading">
+            <span v-if="nlLoading">...</span>
+            <span v-else>{{ t('home.newsletterBtn') }}</span>
+          </button>
         </form>
+        <!-- Feedback message -->
+        <transition name="nl-fade">
+          <p v-if="nlMessage" :class="['newsletter-msg', nlMessage.type === 'success' ? 'nl-success' : 'nl-error']">
+            {{ nlMessage.text }}
+          </p>
+        </transition>
         <p class="newsletter-disclaimer">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -125,7 +162,7 @@ const products = [
       </div>
     </section>
 
-    <!-- Más Comprados -->
+    <!-- Lo más buscado -->
     <section class="bestsellers-section">
       <img src="/images/shape-2.png" class="floating-shape shape-right" alt="" aria-hidden="true">
       <div class="bestsellers-container">
@@ -137,17 +174,22 @@ const products = [
         <div class="products-grid">
           <router-link :to="`/producto/${product.id}`" class="product-card" v-for="product in products" :key="product.id">
             <div class="product-image-wrapper">
-              <img :src="product.image" :alt="product.name" class="product-image" loading="lazy">
-              <span class="product-tag">{{ product.tag }}</span>
+              <div v-if="!product.imagen_url" class="product-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="placeholder-icon">
+                  <path d="M7 2L2 5V10H5V21H19V10H22V5L17 2H14C14 3.1 13.1 4 12 4C10.9 4 10 3.1 10 2H7Z" />
+                </svg>
+              </div>
+              <img v-else :src="product.imagen_url" :alt="product.nombre" class="product-image" loading="lazy">
+              <span class="product-tag" v-if="product.flag">{{ product.flag }}</span>
               <div class="product-overlay">
                 <button class="overlay-btn">{{ t('home.viewProduct') }}</button>
               </div>
             </div>
             <div class="product-info">
-              <span class="product-artist">{{ product.artist }}</span>
-              <h3 class="product-name">{{ product.name }}</h3>
+              <span class="product-artist">{{ product.tienda }}</span>
+              <h3 class="product-name">{{ product.nombre }}</h3>
               <div class="product-footer">
-                <span class="product-price">{{ formatPrice(product.price) }}</span>
+                <span class="product-price">{{ formatPrice(product.precio) }}</span>
               </div>
             </div>
           </router-link>
@@ -474,7 +516,7 @@ const products = [
   }
 }
 
-/* Más Comprados */
+/* Lo más buscado */
 .bestsellers-section {
   padding: 100px 0;
   background-color: var(--bg-color);
@@ -524,8 +566,8 @@ const products = [
 
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 40px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 30px;
 }
 
 /* Product Card */
@@ -560,6 +602,22 @@ const products = [
   height: 100%;
   object-fit: cover;
   transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.product-placeholder {
+  width: 100%;
+  height: 100%;
+  background-color: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbbbbb;
+}
+
+.placeholder-icon {
+  width: 60px;
+  height: 60px;
+  opacity: 0.5;
 }
 
 .product-card:hover .product-image {
@@ -781,9 +839,17 @@ const products = [
 
 .newsletter-form {
   display: flex;
+  flex-direction: column;
   gap: 12px;
   max-width: 520px;
   margin: 0 auto 20px;
+}
+
+.nl-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
 }
 
 .input-wrapper {
@@ -832,18 +898,25 @@ const products = [
   color: #111;
   border-radius: 12px;
   white-space: nowrap;
-  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s, opacity 0.2s;
   box-shadow: 0 4px 16px rgba(246, 178, 0, 0.35);
+  width: 100%;
 }
 
-.newsletter-btn:hover {
+.newsletter-btn:not(:disabled):hover {
   background-color: #e5a600;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(246, 178, 0, 0.5);
 }
 
-.newsletter-btn:active {
+.newsletter-btn:not(:disabled):active {
   transform: translateY(0);
+}
+
+.newsletter-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .newsletter-disclaimer {
@@ -862,12 +935,40 @@ const products = [
   margin-top: 2px;
 }
 
+.newsletter-msg {
+  font-family: 'Nunito', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0 auto 16px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  max-width: 520px;
+}
+
+.nl-success {
+  background: rgba(52, 211, 153, 0.2);
+  color: #6ee7b7;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+}
+
+.nl-error {
+  background: rgba(248, 113, 113, 0.18);
+  color: #fca5a5;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.nl-fade-enter-active, .nl-fade-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.nl-fade-enter-from, .nl-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
 @media (max-width: 600px) {
   .newsletter-title {
     font-size: 2rem;
-  }
-  .newsletter-form {
-    flex-direction: column;
   }
   .newsletter-btn {
     width: 100%;

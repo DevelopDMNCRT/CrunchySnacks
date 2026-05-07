@@ -12,17 +12,36 @@
 
       <!-- Card -->
       <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div class="px-6 py-5">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Haz clic en <strong class="font-medium text-gray-700 dark:text-gray-300">Ver</strong> para consultar el historial de órdenes de un cliente.</p>
+
+        <!-- Header con búsqueda -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex-wrap gap-3">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Haz clic en <strong class="font-medium text-gray-700 dark:text-gray-300">Ver</strong> para consultar el historial de órdenes de un cliente.
+          </p>
+          <div class="relative">
+            <svg class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input v-model="busqueda" type="text" placeholder="Buscar por nombre o correo..."
+              class="pl-9 pr-4 py-2 h-9 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-500/10 w-64" />
+          </div>
         </div>
-        <div class="border-t border-gray-100 dark:border-gray-800">
+
+        <!-- Loading / Error -->
+        <div v-if="loading" class="px-6 py-12 text-center">
+          <p class="text-sm text-gray-400 dark:text-gray-500">Cargando clientes...</p>
+        </div>
+        <div v-else-if="errorMsg" class="px-6 py-12 text-center">
+          <p class="text-sm text-red-400">{{ errorMsg }}</p>
+        </div>
+
+        <!-- Table -->
+        <div v-else class="border-t border-gray-100 dark:border-gray-800">
           <ClientesTable :clientes="paginados" />
         </div>
 
         <!-- Paginación -->
-        <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+        <div v-if="!loading && !errorMsg" class="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800">
           <p class="text-sm text-gray-500 dark:text-gray-400">
-            Mostrando {{ desde + 1 }}–{{ Math.min(desde + porPagina, total) }} de {{ total }}
+            Mostrando {{ filtrados.length === 0 ? 0 : desde + 1 }}–{{ Math.min(desde + porPagina, filtrados.length) }} de {{ filtrados.length }}
           </p>
           <div class="flex items-center gap-1">
             <button
@@ -59,61 +78,68 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 import ClientesTable from '@/components/tables/ClientesTable.vue'
 
 const pagina    = ref(1)
 const porPagina = 10
+const busqueda  = ref('')
+const clientes  = ref([])
+const loading   = ref(true)
+const errorMsg  = ref('')
 
-// ── Mock data ────────────────────────────────────────────────────────────────
 const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
-function fmtFecha(d) {
+function fmtFecha(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
   return `${d.getDate().toString().padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`
 }
 
-function normalize(s) {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
-
-function makeId(i) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let n = (i + 1) * 987654321
-  return Array.from({ length: 6 }, () => {
-    n = ((n * 1664525) + 1013904223) >>> 0
-    return chars[n % chars.length]
-  }).join('')
-}
-
-const nombres = [
-  'Ana Ruiz',       'Carlos Méndez',   'Laura Torres',    'Diego Herrera',  'Sofía Vargas',
-  'Miguel Reyes',   'Valentina Cruz',   'Andrés Leal',    'Camila Mora',    'Javier Ponce',
-  'Elena Rios',     'Fernando Díaz',    'Isabella Soto',  'Rodrigo Núñez',  'Daniela Ortiz',
-  'Emilio Vega',    'Mariana Fuentes',  'Tomás Gil',      'Natalia Romero', 'Pablo Acosta',
-]
-
-const clientes = nombres.map((nombre, i) => {
-  const parts = nombre.split(' ')
-  const email = `${normalize(parts[0])}.${normalize(parts[1] ?? '')}@ejemplo.mx`
-  const alta  = new Date(2023, (i * 2) % 12, (i * 11 % 28) + 1)
-  const numPedidos = (i % 7) + 1
-  const ultima = new Date(alta)
-  ultima.setDate(ultima.getDate() + numPedidos * 40 + 10)
-  return {
-    id: i + 1,
-    cid: makeId(i),
-    nombre,
-    email,
-    alta: fmtFecha(alta),
-    ultimaCompra: fmtFecha(ultima),
-    pedidos: numPedidos,
+const cargar = async () => {
+  loading.value = true
+  errorMsg.value = ''
+  try {
+    const res = await fetch('/api/clientes')
+    if (!res.ok) throw new Error('Error al cargar clientes')
+    const data = await res.json()
+    clientes.value = data.map((c, i) => ({
+      // La tabla ClientesTable espera: id, cid, nombre, email, alta, ultimaCompra, pedidos
+      id:           encodeURIComponent(c.correo),   // ID para la URL del detalle
+      cid:          c.correo.split('@')[0].toUpperCase().slice(0, 8),
+      nombre:       c.nombre,
+      email:        c.correo,
+      telefono:     c.telefono || '—',
+      alta:         fmtFecha(c.primera_compra),
+      ultimaCompra: fmtFecha(c.ultima_compra),
+      pedidos:      c.total_pedidos,
+      totalGastado: parseFloat(c.total_gastado),
+    }))
+  } catch (err) {
+    errorMsg.value = err.message || 'Error desconocido'
+  } finally {
+    loading.value = false
   }
+}
+
+onMounted(cargar)
+
+// Reset página cuando cambia la búsqueda
+watch(busqueda, () => { pagina.value = 1 })
+
+const filtrados = computed(() => {
+  if (!busqueda.value) return clientes.value
+  const q = busqueda.value.toLowerCase()
+  return clientes.value.filter(c =>
+    c.nombre.toLowerCase().includes(q) ||
+    c.email.toLowerCase().includes(q)
+  )
 })
 
-const total        = computed(() => clientes.length)
-const totalPaginas = computed(() => Math.ceil(total.value / porPagina))
+const total        = computed(() => clientes.value.length)
+const totalPaginas = computed(() => Math.max(1, Math.ceil(filtrados.value.length / porPagina)))
 const desde        = computed(() => (pagina.value - 1) * porPagina)
-const paginados    = computed(() => clientes.slice(desde.value, desde.value + porPagina))
+const paginados    = computed(() => filtrados.value.slice(desde.value, desde.value + porPagina))
 const paginas      = computed(() => Array.from({ length: totalPaginas.value }, (_, i) => i + 1))
 </script>

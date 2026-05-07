@@ -1,6 +1,6 @@
 <template>
   <AdminLayout>
-    <div class="space-y-5 sm:space-y-6" v-if="cliente">
+    <div class="space-y-5 sm:space-y-6" v-if="!loading && cliente">
 
       <!-- Header -->
       <div class="flex items-center gap-3">
@@ -13,7 +13,6 @@
         <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ cliente.nombre }}</h1>
       </div>
 
-      <!-- Two-column layout -->
       <div class="grid grid-cols-12 gap-5 items-start">
 
         <!-- ═══ LEFT: Perfil ═══ -->
@@ -21,39 +20,38 @@
           <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
             <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Información del Cliente</h2>
           </div>
-
           <div class="px-6 py-6 space-y-6">
 
-            <!-- Avatar + nombre -->
+            <!-- Avatar + nombre + correo -->
             <div class="flex items-center gap-4">
               <div class="w-16 h-16 rounded-full bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center flex-shrink-0">
                 <span class="text-xl font-bold text-brand-600 dark:text-brand-400">{{ initials(cliente.nombre) }}</span>
               </div>
               <div>
                 <p class="text-lg font-bold text-gray-800 dark:text-white/90">{{ cliente.nombre }}</p>
-                <a :href="`mailto:${cliente.email}`" class="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400">{{ cliente.email }}</a>
+                <a :href="`mailto:${cliente.correo}`" class="text-sm text-brand-500 hover:text-brand-600 dark:text-brand-400">{{ cliente.correo }}</a>
               </div>
             </div>
 
             <div class="border-t border-gray-100 dark:border-gray-800" />
 
-            <!-- Datos: ID, Alta, Última Compra, Pedidos -->
+            <!-- Grid de datos -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-5">
               <div>
-                <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">ID Cliente</p>
-                <p class="font-mono font-bold text-brand-600 dark:text-brand-400 text-sm">{{ cliente.cid }}</p>
+                <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Teléfono</p>
+                <a :href="`tel:${cliente.telefono}`" class="text-sm text-gray-700 dark:text-gray-300 hover:text-brand-500">{{ cliente.telefono || '—' }}</a>
               </div>
               <div>
-                <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Alta</p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ cliente.alta }}</p>
+                <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Primera Compra</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ fmtFecha(cliente.primeraCompra) }}</p>
               </div>
               <div>
                 <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Última Compra</p>
-                <p class="text-sm text-gray-600 dark:text-gray-400">{{ cliente.ultimaCompra }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-400">{{ fmtFecha(cliente.ultimaCompra) }}</p>
               </div>
               <div>
                 <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1">Total Pedidos</p>
-                <p class="text-sm font-bold text-gray-800 dark:text-white/90">{{ ordenes.length }}</p>
+                <p class="text-sm font-bold text-gray-800 dark:text-white/90">{{ pedidos.length }}</p>
               </div>
             </div>
 
@@ -63,92 +61,82 @@
         <!-- ═══ RIGHT: Stats ═══ -->
         <div class="col-span-12 lg:col-span-4 rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
           <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-            <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Resumen</h2>
+            <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Resumen de Compras</h2>
           </div>
           <div class="divide-y divide-gray-100 dark:divide-gray-800">
             <div class="px-5 py-4 flex items-center justify-between">
               <p class="text-sm text-gray-500 dark:text-gray-400">Total gastado</p>
               <p class="text-sm font-bold text-gray-800 dark:text-white/90">
-                ${{ totalGastado.toLocaleString('es-MX') }} MXN
+                ${{ totalGastado.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }} MXN
               </p>
             </div>
             <div class="px-5 py-4 flex items-center justify-between">
               <p class="text-sm text-gray-500 dark:text-gray-400">Promedio por orden</p>
               <p class="text-sm font-semibold text-gray-800 dark:text-white/90">
-                ${{ promedioOrden.toLocaleString('es-MX') }} MXN
+                ${{ promedioOrden.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }} MXN
               </p>
             </div>
             <div class="px-5 py-4 flex items-center justify-between">
               <p class="text-sm text-gray-500 dark:text-gray-400">Pedidos completados</p>
-              <p class="text-sm font-semibold text-success-600 dark:text-success-500">
-                {{ completados }}
-              </p>
+              <p class="text-sm font-semibold text-success-600 dark:text-success-500">{{ completados }}</p>
             </div>
             <div class="px-5 py-4 flex items-center justify-between">
-              <p class="text-sm text-gray-500 dark:text-gray-400">Última compra</p>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ cliente.ultimaCompra }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Cancelados / Fallidos</p>
+              <p class="text-sm font-semibold text-error-600 dark:text-error-500">{{ cancelados }}</p>
             </div>
           </div>
         </div>
 
       </div>
 
-      <!-- ═══ Órdenes Table ═══ -->
+      <!-- ═══ Historial de Órdenes ═══ -->
       <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
           <h2 class="text-base font-semibold text-gray-800 dark:text-white/90">Historial de Órdenes</h2>
           <span class="rounded-full bg-brand-50 dark:bg-brand-500/15 text-brand-600 dark:text-brand-400 text-xs font-semibold px-2.5 py-0.5">
-            {{ ordenes.length }} {{ ordenes.length === 1 ? 'orden' : 'órdenes' }}
+            {{ pedidos.length }} {{ pedidos.length === 1 ? 'orden' : 'órdenes' }}
           </span>
         </div>
         <div class="max-w-full overflow-x-auto custom-scrollbar">
           <table class="min-w-full">
             <thead>
               <tr class="border-b border-gray-200 dark:border-gray-700">
-                <th class="px-5 py-3 text-left sm:px-6">
-                  <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400"># Orden</p>
-                </th>
-                <th class="px-5 py-3 text-left sm:px-6">
-                  <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Fecha</p>
-                </th>
-                <th class="px-5 py-3 text-left sm:px-6">
-                  <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Total</p>
-                </th>
-                <th class="px-5 py-3 text-left sm:px-6">
-                  <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Estado</p>
-                </th>
-                <th class="px-5 py-3 text-left sm:px-6">
-                  <p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Acciones</p>
-                </th>
+                <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400"># Orden</p></th>
+                <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Fecha</p></th>
+                <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Ciudad</p></th>
+                <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Total</p></th>
+                <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Estado</p></th>
+                <th class="px-5 py-3 text-left sm:px-6"><p class="font-medium text-gray-500 text-theme-xs dark:text-gray-400">Acciones</p></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
               <tr
-                v-for="orden in ordenes"
-                :key="orden.id"
+                v-for="p in pedidos"
+                :key="p.id"
                 class="hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors"
               >
                 <td class="px-5 py-4 sm:px-6">
-                  <span class="font-mono text-theme-sm font-semibold text-brand-600 dark:text-brand-400">
-                    #{{ orden.orden }}
-                  </span>
+                  <span class="font-mono text-theme-sm font-semibold text-brand-600 dark:text-brand-400">#{{ p.orden }}</span>
                 </td>
                 <td class="px-5 py-4 sm:px-6">
-                  <span class="text-gray-500 text-theme-sm dark:text-gray-400">{{ orden.fecha }}</span>
+                  <span class="text-gray-500 text-theme-sm dark:text-gray-400">{{ fmtFecha(p.created_at) }}</span>
+                </td>
+                <td class="px-5 py-4 sm:px-6">
+                  <span class="text-gray-500 text-theme-sm dark:text-gray-400">{{ p.ciudad || '—' }}</span>
                 </td>
                 <td class="px-5 py-4 sm:px-6">
                   <span class="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                    ${{ orden.total.toLocaleString('es-MX') }} MXN
+                    ${{ parseFloat(p.total).toLocaleString('es-MX', { minimumFractionDigits: 2 }) }} MXN
                   </span>
                 </td>
                 <td class="px-5 py-4 sm:px-6">
-                  <span :class="estadoClase(orden.estado)" class="rounded-full px-2.5 py-0.5 text-theme-xs font-medium">
-                    {{ orden.estado }}
+                  <span :class="estadoClase(p.estado)" class="rounded-full px-2.5 py-0.5 text-theme-xs font-medium">
+                    {{ p.estado }}
                   </span>
                 </td>
                 <td class="px-5 py-4 sm:px-6">
                   <router-link
-                    :to="`/pedidos/${orden.pedidoId}`"
+                    :to="`/pedidos/${p.id}`"
                     class="inline-flex items-center gap-1.5 text-theme-sm font-medium text-brand-500 hover:text-brand-600 dark:text-brand-400 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -158,11 +146,21 @@
                   </router-link>
                 </td>
               </tr>
+              <tr v-if="pedidos.length === 0">
+                <td colspan="6" class="px-5 py-10 text-center">
+                  <p class="text-sm text-gray-400 dark:text-gray-500">No se encontraron órdenes.</p>
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
       </div>
 
+    </div>
+
+    <!-- Loading -->
+    <div v-else-if="loading" class="flex items-center justify-center min-h-[60vh]">
+      <p class="text-sm text-gray-400 dark:text-gray-500">Cargando cliente...</p>
     </div>
 
     <!-- Not found -->
@@ -174,83 +172,57 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminLayout from '@/components/layout/AdminLayout.vue'
 
-const route = useRoute()
+const route   = useRoute()
+const loading = ref(true)
+const pedidos = ref([])   // lista de pedidos del cliente (raw de la API)
 
-// ── Mock data ────────────────────────────────────────────────────────────────
-const meses   = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-const estados = ['Nuevo', 'En proceso', 'Completado', 'Fallido', 'Cancelado']
+const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
 
-function fmtFecha(d) {
+function fmtFecha(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
   return `${d.getDate().toString().padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`
 }
 
-function normalize(s) {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-}
-
-function makeId(i) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let n = (i + 1) * 987654321
-  return Array.from({ length: 6 }, () => {
-    n = ((n * 1664525) + 1013904223) >>> 0
-    return chars[n % chars.length]
-  }).join('')
-}
-
-const nombres = [
-  'Ana Ruiz',       'Carlos Méndez',   'Laura Torres',    'Diego Herrera',  'Sofía Vargas',
-  'Miguel Reyes',   'Valentina Cruz',   'Andrés Leal',    'Camila Mora',    'Javier Ponce',
-  'Elena Rios',     'Fernando Díaz',    'Isabella Soto',  'Rodrigo Núñez',  'Daniela Ortiz',
-  'Emilio Vega',    'Mariana Fuentes',  'Tomás Gil',      'Natalia Romero', 'Pablo Acosta',
-]
-
-const todosClientes = nombres.map((nombre, i) => {
-  const parts = nombre.split(' ')
-  const email = `${normalize(parts[0])}.${normalize(parts[1] ?? '')}@ejemplo.mx`
-  const alta  = new Date(2023, (i * 2) % 12, (i * 11 % 28) + 1)
-  const numPedidos = (i % 7) + 1
-  const ultima = new Date(alta)
-  ultima.setDate(ultima.getDate() + numPedidos * 40 + 10)
-  return {
-    id: i + 1,
-    cid: makeId(i),
-    nombre,
-    email,
-    alta: fmtFecha(alta),
-    ultimaCompra: fmtFecha(ultima),
-    numPedidos,
+onMounted(async () => {
+  try {
+    const correo = decodeURIComponent(route.params.id)
+    const res = await fetch(`/api/clientes/${encodeURIComponent(correo)}`)
+    if (!res.ok) throw new Error()
+    pedidos.value = await res.json()   // array ordenado desc por created_at
+  } catch {
+    // cliente quedará null → muestra "not found"
+  } finally {
+    loading.value = false
   }
 })
 
-const cliente = computed(() => todosClientes.find(c => c.id === Number(route.params.id)) ?? null)
-
-const ordenes = computed(() => {
-  if (!cliente.value) return []
-  const { id, numPedidos } = cliente.value
-  return Array.from({ length: numPedidos }, (_, j) => {
-    const d = new Date(2024, (id + j * 3) % 12, ((id * 7 + j * 11) % 28) + 1)
-    const total = 299 + ((id * 37 + j * 131) % 4200)
-    const pedidoId = ((id * 3 + j * 7) % 25) + 1
-    return {
-      id:       j + 1,
-      orden:    String(id * 10 + j + 1).padStart(6, '0'),
-      fecha:    fmtFecha(d),
-      total,
-      estado:   estados[(id + j) % estados.length],
-      pedidoId,
-    }
-  })
+// Datos del cliente derivados de los pedidos (todos comparten correo/nombre/teléfono)
+const cliente = computed(() => {
+  if (pedidos.value.length === 0) return null
+  const newest = pedidos.value[0]                          // más reciente (desc)
+  const oldest = pedidos.value[pedidos.value.length - 1]  // más antiguo
+  return {
+    nombre:       newest.nombre,
+    correo:       newest.correo,
+    telefono:     newest.telefono,
+    primeraCompra: oldest.created_at,
+    ultimaCompra:  newest.created_at,
+  }
 })
 
-const totalGastado  = computed(() => ordenes.value.reduce((s, o) => s + o.total, 0))
-const promedioOrden = computed(() => ordenes.value.length ? Math.round(totalGastado.value / ordenes.value.length) : 0)
-const completados   = computed(() => ordenes.value.filter(o => o.estado === 'Completado').length)
+// Métricas
+const totalGastado  = computed(() => pedidos.value.reduce((s, p) => s + parseFloat(p.total), 0))
+const promedioOrden = computed(() => pedidos.value.length ? totalGastado.value / pedidos.value.length : 0)
+const completados   = computed(() => pedidos.value.filter(p => p.estado === 'Completado').length)
+const cancelados    = computed(() => pedidos.value.filter(p => p.estado === 'Cancelado' || p.estado === 'Fallido').length)
 
-const initials = (nombre) => nombre.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
+// Helpers de UI
+const initials = (nombre) => (nombre || '?').split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase()
 
 const estadoClase = (estado) => {
   const mapa = {

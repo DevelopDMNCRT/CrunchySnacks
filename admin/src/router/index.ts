@@ -27,6 +27,12 @@ const router = createRouter({
       meta: { title: 'Nuevo Usuario' },
     },
     {
+      path: '/usuarios/:id/editar',
+      name: 'UsuarioEditar',
+      component: () => import('../views/UsuarioNuevo.vue'),
+      meta: { title: 'Editar Usuario' },
+    },
+    {
       path: '/productos',
       name: 'Productos',
       component: () => import('../views/Productos.vue'),
@@ -123,6 +129,12 @@ const router = createRouter({
       meta: { title: 'Nueva Tienda' },
     },
     {
+      path: '/tiendas/:id',
+      name: 'TiendaEditar',
+      component: () => import('../views/TiendaNueva.vue'),
+      meta: { title: 'Editar Tienda' },
+    },
+    {
       path: '/signup',
       name: 'Signup',
       component: () => import('../views/Auth/Signup.vue'),
@@ -143,7 +155,17 @@ const router = createRouter({
 
 export default router
 
+const PUBLIC_ROUTES = ['/signin', '/signup', '/error-404']
+
 router.beforeEach((to, _from, next) => {
-  document.title = `Vue.js ${to.meta.title} | TailAdmin - Vue.js Tailwind CSS Dashboard Template`
-  next()
+  document.title = `${to.meta.title} | Amigo Merch Admin`
+  const token = localStorage.getItem('amigo_admin_token')
+  const isPublic = PUBLIC_ROUTES.includes(to.path)
+  if (!token && !isPublic) {
+    next('/signin')
+  } else if (token && to.path === '/signin') {
+    next('/')
+  } else {
+    next()
+  }
 })

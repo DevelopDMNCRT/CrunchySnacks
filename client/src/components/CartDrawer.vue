@@ -51,9 +51,15 @@ const goToCheckout = () => {
             <div class="cart-item" v-for="item in cartState.items" :key="item.cartItemId">
               <img :src="item.image" :alt="item.name" class="cart-item-image">
               <div class="cart-item-details">
+                <p class="cart-item-artist">{{ item.tienda }}</p>
                 <h4 class="cart-item-name">{{ item.name }}</h4>
                 <p class="cart-item-meta">{{ t('cart.size') }}: {{ item.size }}</p>
-                <div class="cart-item-price">{{ formatPrice(item.price) }}</div>
+                <div class="cart-item-price">
+                  {{ formatPrice(item.price) }}
+                  <span v-if="item.quantity > 1" class="item-subtotal">
+                    (Subtotal: {{ formatPrice(item.price * item.quantity) }})
+                  </span>
+                </div>
                 
                 <div class="cart-item-controls">
                   <div class="qty-control">
@@ -198,6 +204,15 @@ const goToCheckout = () => {
   flex-direction: column;
 }
 
+.cart-item-artist {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
 .cart-item-name {
   font-family: 'Nunito', sans-serif;
   font-weight: 800;
@@ -216,6 +231,15 @@ const goToCheckout = () => {
   font-weight: 700;
   color: var(--primary-color);
   margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.item-subtotal {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 500;
 }
 
 .cart-item-controls {

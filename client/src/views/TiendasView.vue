@@ -3,33 +3,33 @@
     <div class="header-banner tiendas-banner">
       <div class="banner-overlay"></div>
       <div class="banner-content">
-        <h1>Nuestras Tiendas</h1>
-        <p>Encuentra mercancía oficial de tus artistas favoritos</p>
+        <h1>{{ t('tiendas.bannerTitle') }}</h1>
+        <p>{{ t('tiendas.bannerSub') }}</p>
       </div>
     </div>
 
     <div class="tiendas-container">
       <div class="tiendas-controls">
-        <span class="results-count"><strong>{{ sortedArtists.length }}</strong> tiendas disponibles</span>
+        <span class="results-count"><strong>{{ sortedStores.length }}</strong> {{ t('tiendas.available') }}</span>
         <div class="filter-group">
-          <label for="sort">Ordenar por:</label>
+          <label for="sort">{{ t('tiendas.sortBy') }}</label>
           <select id="sort" v-model="sortBy" class="sort-select">
-            <option value="favorites">Populares</option>
-            <option value="asc">Alfabético (A - Z)</option>
-            <option value="desc">Alfabético (Z - A)</option>
+            <option value="favorites">{{ t('tiendas.sortPopular') }}</option>
+            <option value="asc">{{ t('tiendas.sortAlphaAsc') }}</option>
+            <option value="desc">{{ t('tiendas.sortAlphaDesc') }}</option>
           </select>
         </div>
       </div>
 
       <div class="artist-grid">
-        <router-link :to="`/tienda/${encode(artist.name)}`" class="artist-card" v-for="(artist, index) in sortedArtists" :key="index">
+        <router-link :to="`/tienda/${encode(store.nombre)}`" class="artist-card" v-for="store in sortedStores" :key="store.id">
           <div class="artist-image-wrapper">
-            <img :src="artist.image" :alt="artist.name" class="artist-image" loading="lazy">
+            <img :src="store.imagen_url || '/images/artist1.png'" :alt="store.nombre" class="artist-image" loading="lazy">
             <div class="artist-overlay">
-              <button class="overlay-btn">Visitar Tienda</button>
+              <button class="overlay-btn">{{ t('tiendas.visitStore') }}</button>
             </div>
           </div>
-          <h3 class="artist-name">{{ artist.name }}</h3>
+          <h3 class="artist-name">{{ store.nombre }}</h3>
         </router-link>
       </div>
     </div>
@@ -38,42 +38,37 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useLocale } from '../composables/useLocale.js'
+
+const { t } = useLocale()
 
 const encode = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
 }
 
-const artists = [
-  { name: 'Caloncho', image: '/images/artist1.png' },
-  { name: 'Andrés Obregón', image: '/images/artist2.png' },
-  { name: 'Bruses', image: '/images/artist1.png' },
-  { name: 'Juan Gabriel', image: '/images/artist2.png' },
-  { name: 'XG', image: '/images/artist1.png' },
-  { name: 'Vanessa Zamora', image: '/images/artist2.png' },
-  { name: 'Kevin Kaarl', image: '/images/artist1.png' },
-  { name: 'Esteman', image: '/images/artist2.png' },
-  { name: 'Joliette', image: '/images/artist1.png' },
-  { name: 'Los Rumberos', image: '/images/artist2.png' },
-  { name: 'Siamés', image: '/images/artist1.png' },
-  { name: 'Kakkmadafakka', image: '/images/artist2.png' },
-  { name: 'María Centeno', image: '/images/artist1.png' },
-  { name: 'Sofía Campos', image: '/images/artist2.png' },
-  { name: 'Carla Morrison', image: '/images/artist1.png' },
-  { name: 'La Isla Centeno', image: '/images/artist2.png' },
-  { name: 'Bratty', image: '/images/artist1.png' },
-  { name: 'The Blaze', image: '/images/artist2.png' }
-]
+const stores = ref([])
+
+const fetchStores = async () => {
+  try {
+    const res = await fetch('/api/tiendas')
+    const data = await res.json()
+    stores.value = data.filter(t => t.publico)
+  } catch (err) {
+    console.error('Error fetching stores:', err)
+  }
+}
+
+fetchStores()
 
 const sortBy = ref('favorites')
 
-const sortedArtists = computed(() => {
-  const list = [...artists]
+const sortedStores = computed(() => {
+  const list = [...stores.value]
   if (sortBy.value === 'asc') {
-    return list.sort((a, b) => a.name.localeCompare(b.name))
+    return list.sort((a, b) => a.nombre.localeCompare(b.nombre))
   } else if (sortBy.value === 'desc') {
-    return list.sort((a, b) => b.name.localeCompare(a.name))
+    return list.sort((a, b) => b.nombre.localeCompare(a.nombre))
   }
-  // 'favorites' retains the curated original order from the array
   return list
 })
 </script>

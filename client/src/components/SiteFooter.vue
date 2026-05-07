@@ -5,7 +5,7 @@
         <!-- Logo y Redes Sociales -->
         <div class="footer-brand">
           <img src="/logo.png" alt="Amigo Merch Logo" class="footer-logo" />
-          <p class="footer-desc">Desarrollo, producción, venta y manejo de merch oficial.</p>
+          <p class="footer-desc">{{ t('footer.desc') }}</p>
           <div class="social-links">
             <a href="#" aria-label="Facebook" class="social-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -30,32 +30,37 @@
 
         <!-- Mapa del Sitio -->
         <div class="footer-links-group">
-          <h4 class="footer-heading">Mapa del Sitio</h4>
+          <h4 class="footer-heading">{{ t('footer.siteMap') }}</h4>
           <ul class="footer-links">
-            <li><router-link to="/">Inicio</router-link></li>
-            <li><router-link to="/tiendas">Tiendas</router-link></li>
-            <li><router-link to="/nosotros">Nosotros</router-link></li>
-            <li><router-link to="/facturacion">Facturación</router-link></li>
-            <li><router-link to="/contacto">Contacto</router-link></li>
+            <li><router-link to="/">{{ t('nav.home') }}</router-link></li>
+            <li><router-link to="/tiendas">{{ t('nav.stores') }}</router-link></li>
+            <li><router-link to="/nosotros">{{ t('nav.about') }}</router-link></li>
+            <li><router-link to="/facturacion">{{ t('nav.billing') }}</router-link></li>
+            <li><router-link to="/contacto">{{ t('nav.contact') }}</router-link></li>
           </ul>
         </div>
 
         <!-- Legal -->
         <div class="footer-links-group">
-          <h4 class="footer-heading">Legal</h4>
+          <h4 class="footer-heading">{{ t('footer.legal') }}</h4>
           <ul class="footer-links">
-            <li><router-link to="/aviso-privacidad">Aviso de Privacidad</router-link></li>
-            <li><router-link to="/terminos">Términos y Condiciones</router-link></li>
+            <li><router-link to="/aviso-privacidad">{{ t('footer.privacy') }}</router-link></li>
+            <li><router-link to="/terminos">{{ t('footer.terms') }}</router-link></li>
           </ul>
         </div>
       </div>
 
       <div class="footer-bottom">
-        <p class="copyright">Derechos Reservados, Amigo Merch 2026.</p>
+        <p class="copyright">{{ t('footer.copyright') }}</p>
       </div>
     </div>
   </footer>
 </template>
+
+<script setup>
+import { useLocale } from '../composables/useLocale.js'
+const { t } = useLocale()
+</script>
 
 <style scoped>
 .site-footer {

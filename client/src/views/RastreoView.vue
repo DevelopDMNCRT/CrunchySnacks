@@ -1,73 +1,94 @@
 <script setup>
 import { ref, computed, nextTick } from 'vue'
+import { useLocale } from '../composables/useLocale.js'
+
+const { t, dateLocale } = useLocale()
 
 const orderInput = ref('')
 const isLoading = ref(false)
 const result = ref(null)
 const searched = ref(false)
-const inputError = ref('')
+const hasInputError = ref(false)
+const notFound = ref(false)
 
-const stages = [
-  { id: 1, name: 'Pedido Recibido',  desc: 'Tu pedido fue registrado exitosamente en nuestro sistema.' },
-  { id: 2, name: 'Pago Recibido',    desc: 'El pago ha sido verificado y confirmado sin problemas.' },
-  { id: 3, name: 'En empaque',       desc: 'Estamos preparando tu merch con mucho cariño.' },
-  { id: 4, name: 'En entrega',       desc: 'Tu paquete está en camino hacia tu dirección.' },
-  { id: 5, name: 'Completado',       desc: '¡Tu pedido fue entregado! Gracias por tu compra.' },
-]
+const stages = computed(() => [
+  { id: 1, name: t('rastreo.stage1Name'), desc: t('rastreo.stage1Desc') },
+  { id: 2, name: t('rastreo.stage2Name'), desc: t('rastreo.stage2Desc') },
+  { id: 3, name: t('rastreo.stage3Name'), desc: t('rastreo.stage3Desc') },
+  { id: 4, name: t('rastreo.stage4Name'), desc: t('rastreo.stage4Desc') },
+])
 
-function strHash(str) {
-  const s = str.toUpperCase().replace(/[^A-Z0-9]/g, '')
-  if (s.length < 4) return -1
-  let h = 7
-  for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) & 0xFFFFFF
-  return Math.abs(h) % 100
+/**
+ * Mapea el estado del admin al estado interno del tracker.
+ *
+ * Nuevo       → stage 1 activo  (Pedido Recibido)
+ * En proceso  → stage 3 activo  (En Proceso)
+ * Completado  → stage 4 activo  (Pedido Enviado – final visible)
+ * Cancelado   → tipo 'cancelado' → toda la línea roja
+ * Fallido     → tipo 'fallido'   → toda la línea roja (mismo visual)
+ *
+ * Stage 2 (Pago Recibido) será automático con MercadoPago en el futuro.
+ * Stage 5 (Entregado) queda reservado para confirmar entrega física.
+ */
+function mapEstadoToResult(pedido) {
+  const estado = (pedido.estado || 'Nuevo').trim()
+  if (estado === 'Cancelado') {
+    return { type: 'cancelado', reason: t('rastreo.cancelledReason'), pedido }
+  }
+  if (estado === 'Fallido') {
+    return { type: 'fallido', reason: t('rastreo.failedReason'), pedido }
+  }
+  const stageMap = {
+    'Nuevo':      1,
+    'En proceso': 3,
+    'Completado': 4,   // Pedido Enviado – estado final visible en el tracker
+  }
+  const currentStage = stageMap[estado] ?? 1
+  return { type: 'activo', currentStage, pedido }
 }
 
 async function searchOrder() {
   const val = orderInput.value.trim()
-  if (!val) return
-  const h = strHash(val)
-  if (h === -1) { inputError.value = 'Ingresa al menos 4 caracteres.'; return }
-  inputError.value = ''
+  if (val.length < 4) { hasInputError.value = true; return }
+  hasInputError.value = false
+  notFound.value = false
   isLoading.value = true
   searched.value = false
   result.value = null
-  await new Promise(r => setTimeout(r, 1400))
-  if (h < 10) {
-    result.value = { type: 'cancelado', reason: 'Pedido cancelado a solicitud del cliente.' }
-  } else if (h < 18) {
-    result.value = { type: 'fallido', failedAt: 2, reason: 'El pago fue rechazado. Intenta con otro método o contacta a tu banco.' }
-  } else {
-    result.value = { type: 'activo', currentStage: Math.min(Math.floor(((h - 18) / 82) * 5) + 1, 5) }
-  }
-  isLoading.value = false
-  searched.value = true
-}
 
-function tryDemo(num) {
-  orderInput.value = num
-  nextTick(searchOrder)
+  try {
+    const res = await fetch(`/api/pedidos/orden/${encodeURIComponent(val)}`)
+    if (res.status === 404) {
+      notFound.value = true
+    } else if (!res.ok) {
+      notFound.value = true
+    } else {
+      const pedido = await res.json()
+      result.value = mapEstadoToResult(pedido)
+    }
+  } catch {
+    notFound.value = true
+  } finally {
+    isLoading.value = false
+    searched.value = true
+  }
 }
 
 function stageStatus(id) {
   if (!result.value) return 'pending'
-  if (result.value.type === 'cancelado') return id === 1 ? 'cancelled' : 'dimmed'
-  if (result.value.type === 'fallido') {
-    if (id < result.value.failedAt) return 'completed'
-    if (id === result.value.failedAt) return 'failed'
-    return 'dimmed'
-  }
+  // Cancelado o Fallido: TODA la línea roja desde el primer paso
+  if (result.value.type === 'cancelado' || result.value.type === 'fallido') return 'cancelled'
   const c = result.value.currentStage
   if (id < c) return 'completed'
-  if (id === c) return c === 5 ? 'completed' : 'active'
+  if (id === c) return c === 4 ? 'completed' : 'active'  // stage 4 es el final visible
   return 'pending'
 }
 
 function lineStatus(id) {
   const a = stageStatus(id), b = stageStatus(id + 1)
+  if (a === 'cancelled') return 'error'
   if (a === 'completed' && b === 'completed') return 'completed'
   if (a === 'completed' && b === 'active') return 'half'
-  if (a === 'failed' || a === 'cancelled') return 'error'
   if (a === 'dimmed') return 'dimmed'
   return 'pending'
 }
@@ -76,34 +97,45 @@ function stageDate(id) {
   if (!result.value) return null
   const s = stageStatus(id)
   if (!['completed', 'active', 'failed', 'cancelled'].includes(s)) return null
-  const refStage = result.value.type === 'activo' ? result.value.currentStage : (result.value.failedAt || 1)
-  const d = new Date()
-  d.setDate(d.getDate() - Math.round((refStage - id) * 1.2 + 0.5))
-  d.setHours(8 + id * 2, id % 2 === 0 ? 30 : 0, 0, 0)
+
+  // Usamos la fecha real del pedido como base para stage 1
+  const createdAt = result.value.pedido?.created_at
+  const base = createdAt ? new Date(createdAt) : new Date()
+
+  // Para los stages completados, aproximamos: cada stage tarda ~1.5 días
+  const d = new Date(base)
+  d.setDate(d.getDate() + Math.round((id - 1) * 1.5))
+  d.setHours(9 + id, id % 2 === 0 ? 30 : 0, 0, 0)
   return d
 }
 
 function fmtDate(d) {
   if (!d) return ''
-  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleDateString(dateLocale.value, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 const isError = computed(() => result.value?.type === 'cancelado' || result.value?.type === 'fallido')
 
 const statusLabel = computed(() => {
   if (!result.value) return ''
-  if (result.value.type === 'cancelado') return 'Cancelado'
-  if (result.value.type === 'fallido') return 'Fallido'
-  if (result.value.currentStage === 5) return 'Completado'
-  return 'En Progreso'
+  if (result.value.type === 'cancelado') return t('rastreo.statusCancelled')
+  if (result.value.type === 'fallido') return t('rastreo.statusFailed')
+  if (result.value.currentStage === 4) return t('rastreo.statusDone')  // Stage 4 = final visible
+  return t('rastreo.statusActive')
 })
 
 const etaText = computed(() => {
-  if (!result.value || result.value.type !== 'activo' || result.value.currentStage === 5) return null
-  const d = new Date()
-  d.setDate(d.getDate() + (5 - result.value.currentStage + 1))
-  return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+  // Sin ETA si el pedido está en error, o ya fue enviado (stage 4)
+  if (!result.value || result.value.type !== 'activo') return null
+  if (result.value.currentStage >= 4) return null
+  const createdAt = result.value.pedido?.created_at
+  const base = createdAt ? new Date(createdAt) : new Date()
+  const d = new Date(base)
+  d.setDate(d.getDate() + (4 - result.value.currentStage + 2))
+  return d.toLocaleDateString(dateLocale.value, { weekday: 'long', day: 'numeric', month: 'long' })
 })
+
+const clienteName = computed(() => result.value?.pedido?.nombre || '')
 </script>
 
 <template>
@@ -113,8 +145,8 @@ const etaText = computed(() => {
     <div class="header-banner rastreo-banner">
       <div class="banner-overlay"></div>
       <div class="banner-content">
-        <h1>Rastrea tu Pedido</h1>
-        <p>Consulta el estado de tu compra en tiempo real</p>
+        <h1>{{ t('rastreo.bannerTitle') }}</h1>
+        <p>{{ t('rastreo.bannerSub') }}</p>
       </div>
     </div>
 
@@ -123,8 +155,8 @@ const etaText = computed(() => {
 
       <!-- Search Card -->
       <div class="search-card">
-        <h2 class="search-heading">¿Cuál es tu número de orden?</h2>
-        <p class="search-sub">Lo encontrarás en el correo de confirmación de tu compra.</p>
+        <h2 class="search-heading">{{ t('rastreo.searchHeading') }}</h2>
+        <p class="search-sub">{{ t('rastreo.searchSub') }}</p>
 
         <form @submit.prevent="searchOrder" class="search-form">
           <div class="input-row" :class="{ disabled: isLoading }">
@@ -137,7 +169,7 @@ const etaText = computed(() => {
               v-model="orderInput"
               type="text"
               class="order-input"
-              placeholder="ej. ORD-12345 o 87654321"
+              :placeholder="t('rastreo.searchPlaceholder')"
               autocomplete="off"
               :disabled="isLoading"
               @keydown.enter.prevent="searchOrder"
@@ -153,20 +185,17 @@ const etaText = computed(() => {
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                 </svg>
-                Buscar
+                {{ t('rastreo.searchBtn') }}
               </span>
             </button>
           </div>
-          <p v-if="inputError" class="input-error">{{ inputError }}</p>
+          <p v-if="hasInputError" class="input-error">{{ t('rastreo.inputError') }}</p>
         </form>
 
-        <div class="demo-row">
-          <span class="demo-label">Prueba con:</span>
-          <button class="demo-chip" @click="tryDemo('ORD-2024')">ORD-2024</button>
-          <button class="demo-chip" @click="tryDemo('ORD-5050')">ORD-5050</button>
-          <button class="demo-chip demo-chip-err" @click="tryDemo('CANCEL-X')">CANCEL-X</button>
-          <button class="demo-chip demo-chip-err" @click="tryDemo('FAIL-99')">FAIL-99</button>
-        </div>
+        <p class="search-hint">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Ingresa el número de orden tal como aparece en tu correo de confirmación.
+        </p>
       </div>
 
       <!-- Loading skeleton -->
@@ -182,6 +211,19 @@ const etaText = computed(() => {
               <div class="sk-block sk-line-a"></div>
               <div class="sk-block sk-line-b"></div>
             </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- Not found card -->
+      <transition name="result">
+        <div v-if="searched && notFound" class="not-found-card">
+          <div class="not-found-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div>
+            <p class="not-found-title">Pedido no encontrado</p>
+            <p class="not-found-sub">Verifica que el número de orden sea correcto. Lo encuentras en el correo de confirmación de tu compra.</p>
           </div>
         </div>
       </transition>
@@ -202,7 +244,7 @@ const etaText = computed(() => {
               </svg>
             </div>
             <div>
-              <p class="error-title">{{ result.type === 'cancelado' ? 'Pedido Cancelado' : 'Pedido Fallido' }}</p>
+              <p class="error-title">{{ result.type === 'cancelado' ? t('rastreo.cancelledTitle') : t('rastreo.failedTitle') }}</p>
               <p class="error-reason">{{ result.reason }}</p>
             </div>
           </div>
@@ -210,28 +252,32 @@ const etaText = computed(() => {
           <!-- Order header -->
           <div class="order-header">
             <div>
-              <p class="order-label-text">Número de orden</p>
-              <p class="order-num">#{{ orderInput.trim().toUpperCase() }}</p>
+              <p class="order-label-text">{{ t('rastreo.orderLabel') }}</p>
+              <p class="order-num">#{{ result.pedido?.orden?.toUpperCase() || orderInput.trim().toUpperCase() }}</p>
+              <p v-if="clienteName" class="order-cliente">{{ clienteName }}</p>
             </div>
             <div
               class="status-badge"
               :class="{
-                'badge-active': !isError && result.currentStage !== 5,
-                'badge-done': !isError && result.currentStage === 5,
+                'badge-active': !isError && result.currentStage !== 4,
+                'badge-done': !isError && result.currentStage === 4,
                 'badge-error': isError
               }"
             >
-              <span class="badge-pulse" v-if="!isError && result.currentStage !== 5"></span>
+              <span class="badge-pulse" v-if="!isError && result.currentStage !== 4"></span>
               {{ statusLabel }}
             </div>
           </div>
 
-          <!-- Progress bar (active orders only) -->
-          <div v-if="!isError" class="progress-bar-wrap">
+          <!-- Progress bar -->
+          <div class="progress-bar-wrap" :class="{ 'progress-error-track': isError }">
             <div
               class="progress-bar-fill"
-              :style="{ width: ((result.currentStage - 1) / 4 * 100) + '%' }"
-              :class="{ 'progress-done': result.currentStage === 5 }"
+              :style="isError ? { width: '100%' } : { width: ((result.currentStage - 1) / 3 * 100) + '%' }"
+              :class="{
+                'progress-done':  !isError && result.currentStage === 4,
+                'progress-error': isError
+              }"
             ></div>
           </div>
 
@@ -282,7 +328,7 @@ const etaText = computed(() => {
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            Entrega estimada: <strong>{{ etaText }}</strong>
+            {{ t('rastreo.etaPrefix') }} <strong>{{ etaText }}</strong>
           </div>
 
           <!-- Error CTA -->
@@ -291,7 +337,7 @@ const etaText = computed(() => {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
               </svg>
-              Contactar Soporte
+              {{ t('rastreo.contactSupport') }}
             </router-link>
           </div>
         </div>
@@ -618,6 +664,63 @@ const etaText = computed(() => {
   letter-spacing: -0.3px;
 }
 
+.order-cliente {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+/* Not found card */
+.not-found-card {
+  background: white;
+  border-radius: 16px;
+  padding: 28px 28px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+  margin-bottom: 28px;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  border-top: 4px solid #e0e0e0;
+}
+
+.not-found-icon {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  color: #aaa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.not-found-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0 0 6px;
+}
+
+.not-found-sub {
+  font-size: 0.87rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Search hint */
+.search-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 16px;
+  line-height: 1.4;
+}
+
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -657,7 +760,9 @@ const etaText = computed(() => {
   transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.progress-done { background: var(--primary-color); }
+.progress-done  { background: var(--primary-color); }
+.progress-error { background: #e53935; }
+.progress-error-track { background: #ffebee; }
 
 /* ── Timeline ──────────────────────────────────────── */
 .timeline {

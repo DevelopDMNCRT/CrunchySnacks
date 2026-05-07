@@ -3,8 +3,8 @@
     <div class="header-banner">
       <div class="banner-overlay"></div>
       <div class="banner-content">
-        <h1>Centro de Contacto</h1>
-        <p>Estamos para apoyarte con cualquier duda sobre tus pedidos o proyectos</p>
+        <h1>{{ t('contacto.bannerTitle') }}</h1>
+        <p>{{ t('contacto.bannerSub') }}</p>
       </div>
     </div>
 
@@ -14,31 +14,31 @@
           <div class="contact-form-card">
             <form class="contact-form" @submit.prevent>
               <div class="form-group">
-                <label for="name">Nombre Completo</label>
-                <input type="text" id="name" placeholder="Tu nombre" required>
+                <label for="name">{{ t('home.contactName') }}</label>
+                <input type="text" id="name" :placeholder="t('home.contactNamePh')" required>
               </div>
               
               <div class="form-group">
-                <label for="email">Correo Electrónico</label>
-                <input type="email" id="email" placeholder="tucorreo@ejemplo.com" required>
+                <label for="email">{{ t('home.contactEmail') }}</label>
+                <input type="email" id="email" :placeholder="t('home.contactEmailPh')" required>
               </div>
               
               <div class="form-group">
-                <label for="subject">Asunto</label>
+                <label for="subject">{{ t('home.contactSubject') }}</label>
                 <select id="subject" required>
-                  <option value="" disabled selected>Selecciona un asunto</option>
-                  <option value="pedido">Duda sobre mi pedido</option>
-                  <option value="maquila">Cotización de Maquila</option>
-                  <option value="otro">Otro</option>
+                  <option value="" disabled selected>{{ t('home.contactSubjectPh') }}</option>
+                  <option value="pedido">{{ t('home.contactOrder') }}</option>
+                  <option value="maquila">{{ t('home.contactMaquila') }}</option>
+                  <option value="otro">{{ t('home.contactOther') }}</option>
                 </select>
               </div>
               
               <div class="form-group">
-                <label for="message">Mensaje</label>
-                <textarea id="message" rows="4" placeholder="¿En qué te podemos ayudar?" required></textarea>
+                <label for="message">{{ t('home.contactMessage') }}</label>
+                <textarea id="message" rows="4" :placeholder="t('home.contactMessagePh')" required></textarea>
               </div>
               
-              <button type="submit" class="submit-btn">Enviar Mensaje</button>
+              <button type="submit" class="submit-btn">{{ t('home.contactSend') }}</button>
             </form>
           </div>
 
@@ -51,7 +51,7 @@
                 </svg>
               </div>
               <div class="info-text">
-                <h3>Teléfono / WhatsApp</h3>
+                <h3>{{ t('home.contactPhone') }}</h3>
                 <p><a href="tel:+525512345678">+52 55 1234 5678</a></p>
               </div>
             </div>
@@ -64,7 +64,7 @@
                 </svg>
               </div>
               <div class="info-text">
-                <h3>Correo Electrónico</h3>
+                <h3>{{ t('home.contactEmailLabel') }}</h3>
                 <p><a href="mailto:hola@amigomerch.mx">hola@amigomerch.mx</a></p>
               </div>
             </div>
@@ -76,6 +76,9 @@
 
 <script setup>
 import { onMounted } from 'vue'
+import { useLocale } from '../composables/useLocale.js'
+
+const { t } = useLocale()
 
 onMounted(() => {
   window.scrollTo(0, 0)

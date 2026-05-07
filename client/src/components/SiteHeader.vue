@@ -12,6 +12,22 @@ const isTiendasOpen = ref(false)
 const isLangMenuOpen = ref(false)
 const isChatOpen = ref(false)
 const isDesktopMegamenuOpen = ref(false)
+const stores = ref([])
+
+const encode = (str) => {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
+}
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/tiendas')
+    const data = await res.json()
+    // Filtrar solo las públicas
+    stores.value = data.filter(t => t.publico === true || t.publico === 'true' || t.publico === 1)
+  } catch (err) {
+    console.error('Error fetching stores for megamenu:', err)
+  }
+})
 
 const route = useRoute()
 const isCheckout = computed(() => route.path === '/checkout')
@@ -93,24 +109,9 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
                 </div>
                 <div class="megamenu-lists">
                   <ul class="sub-menu">
-                    <li class="menu-item"><router-link to="/tienda/caloncho">Caloncho</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/andres-obregon">Andrés Obregón</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/bruses">Bruses</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/juan-gabriel">Juan Gabriel</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/xg">XG</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/vanessa-zamora">Vanessa Zamora</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/kevin-kaarl">Kevin Kaarl</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/esteman">Esteman</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/joliette">Joliette</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/los-rumberos">Los Rumberos</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/siames">Siamés</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/kakkmadafakka">Kakkmadafakka</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/maria-centeno">María Centeno</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/sofia-campos">Sofía Campos</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/carla-morrison">Carla Morrison</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/la-isla-centeno">La Isla Centeno</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/bratty">Bratty</router-link></li>
-                    <li class="menu-item"><router-link to="/tienda/the-blaze">The Blaze</router-link></li>
+                    <li class="menu-item" v-for="store in stores" :key="store.id">
+                      <router-link :to="`/tienda/${encode(store.nombre)}`">{{ store.nombre }}</router-link>
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -177,24 +178,9 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
             <span class="chevron" :style="{ transform: isTiendasOpen ? 'rotate(180deg)' : 'rotate(0)' }"></span>
           </div>
           <ul class="mobile-sub-menu" v-show="isTiendasOpen">
-            <li class="menu-item"><router-link to="/tienda/caloncho" @click="toggleMenu">Caloncho</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/andres-obregon" @click="toggleMenu">Andrés Obregón</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/bruses" @click="toggleMenu">Bruses</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/juan-gabriel" @click="toggleMenu">Juan Gabriel</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/xg" @click="toggleMenu">XG</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/vanessa-zamora" @click="toggleMenu">Vanessa Zamora</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/kevin-kaarl" @click="toggleMenu">Kevin Kaarl</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/esteman" @click="toggleMenu">Esteman</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/joliette" @click="toggleMenu">Joliette</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/los-rumberos" @click="toggleMenu">Los Rumberos</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/siames" @click="toggleMenu">Siamés</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/kakkmadafakka" @click="toggleMenu">Kakkmadafakka</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/maria-centeno" @click="toggleMenu">María Centeno</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/sofia-campos" @click="toggleMenu">Sofía Campos</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/carla-morrison" @click="toggleMenu">Carla Morrison</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/la-isla-centeno" @click="toggleMenu">La Isla Centeno</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/bratty" @click="toggleMenu">Bratty</router-link></li>
-            <li class="menu-item"><router-link to="/tienda/the-blaze" @click="toggleMenu">The Blaze</router-link></li>
+            <li class="menu-item" v-for="store in stores" :key="store.id">
+              <router-link :to="`/tienda/${encode(store.nombre)}`" @click="toggleMenu">{{ store.nombre }}</router-link>
+            </li>
           </ul>
         </li>
         <li><router-link to="/nosotros" @click="toggleMenu">{{ t('nav.about') }}</router-link></li>

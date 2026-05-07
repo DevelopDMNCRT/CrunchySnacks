@@ -3,23 +3,18 @@
     <div class="us-hero">
       <div class="hero-overlay"></div>
       <div class="hero-content">
-        <h1>Conoce Amigo Merch</h1>
-        <p>Pasión por la música, calidad en cada detalle.</p>
+        <h1>{{ t('nosotros.heroTitle') }}</h1>
+        <p>{{ t('nosotros.heroSub') }}</p>
       </div>
     </div>
 
     <section class="us-story-section">
       <div class="container us-container">
         <div class="us-text-content">
-          <h2>Más que mercancía, somos <span class="highlight">una extensión de tu artista</span>.</h2>
-          <p class="lead">Nos dedicamos a materializar la esencia de la música en productos que puedes tocar, usar y vivir todos los días.</p>
-          <p>
-            En Amigo Merch colaboramos estrechamente con tus artistas favoritos para diseñar, fabricar y distribuir mercancía oficial de la más alta calidad. 
-            Sabemos lo que significa un concierto, lo que significa esa canción que no dejas de repetir, y queremos que te lleves un pedazo de esa experiencia a casa.
-          </p>
-          <p>
-            Nuestro compromiso es ofrecerte prendas duraderas, diseños increíbles y un servicio impecable. Porque no solo vendemos ropa, vendemos recuerdos.
-          </p>
+          <h2>{{ t('nosotros.storyTitlePre') }}<span class="highlight">{{ t('nosotros.storyHighlight') }}</span>{{ t('nosotros.storyTitlePost') }}</h2>
+          <p class="lead">{{ t('nosotros.storyLead') }}</p>
+          <p>{{ t('nosotros.storyP1') }}</p>
+          <p>{{ t('nosotros.storyP2') }}</p>
         </div>
         <!-- Forma decorativa flotante -->
         <img src="/images/shape-2.png" class="floating-shape shape-right" alt="" aria-hidden="true">
@@ -39,8 +34,8 @@
                 <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
               </svg>
             </div>
-            <h3>Producción</h3>
-            <p>Podemos asistirte en todas las facetas del diseño de tu producto. Desde la primera idea hasta el producto terminado.</p>
+            <h3>{{ t('nosotros.service1Title') }}</h3>
+            <p>{{ t('nosotros.service1Desc') }}</p>
           </div>
 
           <div class="service-card">
@@ -52,8 +47,8 @@
                 <line x1="12" y1="17" x2="12" y2="21"></line>
               </svg>
             </div>
-            <h3>Ventas en Línea</h3>
-            <p>Almacenamiento y cumplimiento de órdenes a través de nuestra página web o la tuya.</p>
+            <h3>{{ t('nosotros.service2Title') }}</h3>
+            <p>{{ t('nosotros.service2Desc') }}</p>
           </div>
 
           <div class="service-card">
@@ -66,8 +61,8 @@
                 <circle cx="18.5" cy="18.5" r="2.5"></circle>
               </svg>
             </div>
-            <h3>Ventas de Gira</h3>
-            <p>Toda la logística, ventas y administración necesarias durante tu gira (Tour Sales).</p>
+            <h3>{{ t('nosotros.service3Title') }}</h3>
+            <p>{{ t('nosotros.service3Desc') }}</p>
           </div>
 
           <div class="service-card">
@@ -78,8 +73,8 @@
                 <polyline points="9 22 9 12 15 12 15 22"></polyline>
               </svg>
             </div>
-            <h3>Pop Up Shops</h3>
-            <p>Producción de eventos especiales, convivencias (meet & greets) y/o exhibiciones (showcases).</p>
+            <h3>{{ t('nosotros.service4Title') }}</h3>
+            <p>{{ t('nosotros.service4Desc') }}</p>
           </div>
 
         </div>
@@ -89,21 +84,21 @@
     <!-- Lo Más Vendido -->
     <section class="best-sellers-section">
       <div class="container">
-        <h2 class="section-title">Lo más vendido</h2>
+        <h2 class="section-title">{{ t('nosotros.bestSellersTitle') }}</h2>
         <div class="products-grid">
           <div class="product-card" v-for="product in bestSellers" :key="product.id" @click="goToProduct(product.id)">
             <div class="product-image-wrapper">
               <img :src="product.image" :alt="product.name" class="product-image" loading="lazy">
-              <span class="product-tag" v-if="product.tag">{{ product.tag }}</span>
+              <span class="product-tag" v-if="product.tag">{{ tTag(product.tag) }}</span>
               <div class="product-overlay">
-                <button class="overlay-btn">Ver Producto</button>
+                <button class="overlay-btn">{{ t('nosotros.viewProduct') }}</button>
               </div>
             </div>
             <div class="product-info">
               <span class="product-artist">{{ product.artist }}</span>
               <h3 class="product-name">{{ product.name }}</h3>
               <div class="product-footer">
-                <span class="product-price">${{ product.price }} MXN</span>
+                <span class="product-price">{{ formatPrice(product.price) }}</span>
               </div>
             </div>
           </div>
@@ -116,8 +111,11 @@
 <script setup>
 import { onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLocale } from '../composables/useLocale.js'
+import { formatPrice } from '../store/locale.js'
 
 const router = useRouter()
+const { t, tTag } = useLocale()
 
 const bestSellers = [
   { id: 101, name: 'Playera Tour 2026', artist: 'Caloncho', price: 450, image: '/images/product1.png', tag: 'Nuevo' },

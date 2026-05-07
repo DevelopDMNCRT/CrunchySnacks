@@ -7,7 +7,7 @@
         <router-link to="/news" class="flex items-center justify-center w-9 h-9 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </router-link>
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">Nueva Newsletter</h1>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">{{ isEditing ? 'Editar boletín' : 'Nuevo boletín' }}</h1>
       </div>
 
       <!-- Asunto -->
@@ -114,51 +114,220 @@
             </div>
           </div>
 
-          <!-- Publicar -->
+          <!-- Destinatarios -->
+          <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+            <div class="px-5 py-3.5 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Destinatarios</h3>
+              <span class="text-xs font-semibold rounded-full px-2 py-0.5"
+                :class="seleccionados.length > 0
+                  ? 'bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-400'
+                  : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'">
+                {{ seleccionados.length }} / {{ suscriptores.length }}
+              </span>
+            </div>
+            <div class="p-3 space-y-2">
+              <!-- Buscar -->
+              <div class="relative">
+                <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input v-model="busqSusc" type="text" placeholder="Filtrar..."
+                  class="w-full pl-7 pr-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-transparent text-xs text-gray-700 dark:text-gray-300 focus:outline-none focus:border-brand-300" />
+              </div>
+              <!-- Toggle todos -->
+              <div class="flex items-center justify-between">
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                  <input type="checkbox"
+                    :checked="todosSeleccionados"
+                    :indeterminate.prop="algunosSeleccionados"
+                    @change="toggleTodos"
+                    class="rounded border-gray-300 dark:border-gray-600 text-brand-500 focus:ring-brand-500 cursor-pointer" />
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400">Todos</span>
+                </label>
+                <button v-if="seleccionados.length > 0" @click="seleccionados = []"
+                  class="text-xs text-gray-400 hover:text-error-500 transition-colors">Limpiar</button>
+              </div>
+              <!-- Lista -->
+              <div v-if="cargandoSusc" class="py-4 text-center">
+                <p class="text-xs text-gray-400">Cargando...</p>
+              </div>
+              <div v-else-if="suscriptoresFiltrados.length === 0" class="py-4 text-center">
+                <p class="text-xs text-gray-400">{{ suscriptores.length === 0 ? 'Sin suscriptores registrados.' : 'Sin resultados.' }}</p>
+              </div>
+              <div v-else class="max-h-48 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+                <label
+                  v-for="s in suscriptoresFiltrados" :key="s.correo"
+                  class="flex items-start gap-2 rounded-lg px-2 py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/[0.03] transition-colors"
+                >
+                  <input type="checkbox"
+                    :value="s.correo"
+                    v-model="seleccionados"
+                    class="mt-0.5 flex-shrink-0 rounded border-gray-300 dark:border-gray-600 text-brand-500 focus:ring-brand-500 cursor-pointer" />
+                  <div class="min-w-0">
+                    <p class="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">{{ s.nombre }}</p>
+                    <p class="text-xs text-gray-400 truncate">{{ s.correo }}</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
             <div class="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Publicar</h3>
             </div>
             <div class="p-4 space-y-3">
-              <button @click="enviarAhora" class="w-full flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Enviar Ahora
+              <!-- Enviar Ahora -->
+              <button
+                @click="enviarAhora"
+                :disabled="enviando || yaEnviado || !boletinId || seleccionados.length === 0"
+                class="w-full flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+                :class="yaEnviado
+                  ? 'bg-success-50 text-success-600 dark:bg-success-500/10 dark:text-success-400 cursor-default'
+                  : (!boletinId || seleccionados.length === 0)
+                  ? 'bg-brand-500 text-white opacity-40 cursor-not-allowed'
+                  : 'bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-60'"
+                :title="!boletinId ? 'Guarda el borrador primero' : seleccionados.length === 0 ? 'Selecciona al menos un destinatario' : yaEnviado ? 'Ya enviado' : `Enviar a ${seleccionados.length} contacto(s)`"
+              >
+                <svg v-if="enviando" class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9"/><circle cx="12" cy="12" r="9" stroke-opacity="0.25"/></svg>
+                <svg v-else-if="yaEnviado" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                <span v-if="!yaEnviado && !enviando && seleccionados.length > 0">
+                  Enviar a {{ seleccionados.length }}
+                </span>
+                <span v-else>{{ enviando ? 'Enviando...' : yaEnviado ? 'Ya enviado' : 'Enviar ahora' }}</span>
               </button>
-              <div class="border-t border-gray-100 dark:border-gray-800 pt-3">
-                <p class="text-xs text-gray-400 mb-2">Programar envío</p>
-                <input type="datetime-local" v-model="scheduledAt"
-                  class="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent px-3 py-2 text-sm text-gray-800 dark:text-white/90 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:focus:border-brand-800" />
-                <button @click="programar"
-                  class="mt-2 w-full rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  Programar
-                </button>
-              </div>
+              <p v-if="!boletinId" class="text-xs text-gray-400 text-center">Guarda el borrador antes de enviar.</p>
+              <p v-else-if="seleccionados.length === 0" class="text-xs text-gray-400 text-center">Selecciona destinatarios arriba.</p>
             </div>
           </div>
 
           <!-- Guardar borrador -->
-          <button @click="guardarBorrador" class="w-full rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-            Guardar borrador
+          <button @click="guardarBorrador" :disabled="saving"
+            class="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-gray-700 px-4 py-2.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors disabled:opacity-50">
+            <svg v-if="saving" class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9"/><circle cx="12" cy="12" r="9" stroke-opacity="0.25"/></svg>
+            {{ saving ? 'Guardando...' : 'Guardar borrador' }}
           </button>
+
+          <!-- Toast -->
+          <transition name="fade">
+            <div v-if="toast.show" class="rounded-xl px-4 py-3 text-sm font-medium flex items-center gap-2"
+              :class="toast.ok ? 'bg-success-50 text-success-700 dark:bg-success-500/10 dark:text-success-400' : 'bg-error-50 text-error-700 dark:bg-error-500/10 dark:text-error-400'">
+              <svg v-if="toast.ok" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              {{ toast.msg }}
+            </div>
+          </transition>
         </div>
       </div>
     </div>
   </AdminLayout>
+
+  <!-- Modal resultado de envío -->
+  <Teleport to="body">
+    <transition name="fade">
+      <div v-if="resultModal.show" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm" @click.self="resultModal.show = false">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+          <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+              :class="resultModal.ok ? 'bg-success-100 dark:bg-success-500/20' : 'bg-error-100 dark:bg-error-500/20'">
+              <svg v-if="resultModal.ok" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-success-600 dark:text-success-400"><polyline points="20 6 9 17 4 12"/></svg>
+              <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-error-500"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </div>
+            <h2 class="text-base font-bold text-gray-800 dark:text-white/90">{{ resultModal.titulo }}</h2>
+          </div>
+          <div class="px-6 py-5 space-y-3">
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ resultModal.msg }}</p>
+            <div v-if="resultModal.ok" class="grid grid-cols-2 gap-3">
+              <div class="rounded-xl bg-success-50 dark:bg-success-500/10 px-4 py-3 text-center">
+                <p class="text-2xl font-bold text-success-600 dark:text-success-400">{{ resultModal.enviados }}</p>
+                <p class="text-xs text-success-600 dark:text-success-500 font-medium mt-0.5">Enviados</p>
+              </div>
+              <div class="rounded-xl bg-gray-100 dark:bg-gray-800 px-4 py-3 text-center">
+                <p class="text-2xl font-bold text-gray-700 dark:text-gray-300">{{ resultModal.fallidos }}</p>
+                <p class="text-xs text-gray-500 font-medium mt-0.5">Fallidos</p>
+              </div>
+            </div>
+            <p v-if="resultModal.ok && !resultModal.emailReal" class="text-xs text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-500/10 rounded-lg px-3 py-2">
+              ⚠️ Modo dev: no hay SMTP configurado. Configura las variables de entorno para envíos reales.
+            </p>
+          </div>
+          <div class="px-6 pb-5">
+            <button @click="resultModal.show = false; $router.push('/news')" class="w-full rounded-xl bg-brand-500 text-white px-4 py-2.5 text-sm font-semibold hover:bg-brand-600 transition-colors">
+              Volver a Newsletter
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import AdminLayout from '@/components/layout/AdminLayout.vue';
 
 const router = useRouter();
-const editorEl   = ref(null);
-const asunto     = ref('');
-const scheduledAt = ref('');
+const route  = useRoute();
+const editorEl    = ref(null);
+const asunto      = ref('');
 const showColors  = ref(false);
 const currentColor = ref('#237650');
 const activeTemplate = ref('blank');
-const dirty = ref(false);
+const saving     = ref(false);
+const boletinId  = ref(null);
+const toast      = ref({ show: false, ok: true, msg: '' });
+const enviando   = ref(false);
+const yaEnviado  = ref(false);
+const resultModal = ref({ show: false, ok: true, titulo: '', msg: '', enviados: 0, fallidos: 0, emailReal: false });
+
+
+// Suscriptores para selección de destinatarios
+const suscriptores        = ref([]);
+const seleccionados       = ref([]);  // array de correos seleccionados
+const cargandoSusc        = ref(false);
+const busqSusc            = ref('');
+
+const suscriptoresFiltrados = computed(() => {
+  const q = busqSusc.value.toLowerCase();
+  if (!q) return suscriptores.value;
+  return suscriptores.value.filter(s =>
+    s.nombre.toLowerCase().includes(q) || s.correo.toLowerCase().includes(q)
+  );
+});
+
+const todosSeleccionados = computed(() =>
+  suscriptores.value.length > 0 && seleccionados.value.length === suscriptores.value.length
+);
+const algunosSeleccionados = computed(() =>
+  seleccionados.value.length > 0 && seleccionados.value.length < suscriptores.value.length
+);
+
+const toggleTodos = () => {
+  if (todosSeleccionados.value) {
+    seleccionados.value = [];
+  } else {
+    seleccionados.value = suscriptores.value.map(s => s.correo);
+  }
+};
+
+const cargarSuscriptores = async () => {
+  cargandoSusc.value = true;
+  try {
+    const res = await fetch('/api/suscriptores');
+    if (res.ok) {
+      suscriptores.value = await res.json();
+      // Por defecto, seleccionar todos
+      seleccionados.value = suscriptores.value.map(s => s.correo);
+    }
+  } catch { /* silencioso */ } finally {
+    cargandoSusc.value = false;
+  }
+};
+
+function showToast(ok, msg) {
+  toast.value = { show: true, ok, msg };
+  setTimeout(() => { toast.value.show = false; }, 3000);
+}
 
 // ── Formatting ────────────────────────────────────────
 const exec = (cmd) => { editorEl.value.focus(); document.execCommand(cmd, false, null); };
@@ -296,16 +465,99 @@ const applyTemplate = (tpl) => {
   editorEl.value.innerHTML = tpl.html;
 };
 
-// ── Actions ───────────────────────────────────────────
-const enviarAhora = () => alert('✅ Newsletter enviado (conectar con backend)');
-const programar   = () => {
-  if (!scheduledAt.value) { alert('Selecciona una fecha y hora.'); return; }
-  alert(`📅 Programado para: ${new Date(scheduledAt.value).toLocaleString('es-MX')}`);
+// ── Enviar boletín ─────────────────────────────────────────
+const enviarAhora = async () => {
+  if (!boletinId.value || enviando.value || seleccionados.value.length === 0) return;
+  if (!confirm(`¿Enviar este boletín a ${seleccionados.value.length} contacto(s) seleccionado(s)?\n\nEsta acción no se puede deshacer.`)) return;
+  enviando.value = true;
+  // Pre-guardar el contenido actual
+  try {
+    await fetch(`/api/boletines/${boletinId.value}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ asunto: asunto.value.trim(), html: editorEl.value.innerHTML }),
+    });
+  } catch { /* continuar */ }
+  // Enviar con lista de destinatarios seleccionados
+  try {
+    const res = await fetch(`/api/boletines/${boletinId.value}/enviar`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ destinatarios: seleccionados.value }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      resultModal.value = { show: true, ok: false, titulo: 'Error al enviar', msg: data.error || 'Ocurrió un error inesperado.', enviados: 0, fallidos: 0, emailReal: false };
+    } else {
+      yaEnviado.value = true;
+      resultModal.value = {
+        show: true, ok: true,
+        titulo: '¡Boletín enviado!',
+        msg: `Se envió "${asunto.value}" a ${seleccionados.value.length} destinatario(s).`,
+        enviados:  data.enviados,
+        fallidos:  data.fallidos,
+        emailReal: data.emailReal,
+      };
+    }
+  } catch {
+    resultModal.value = { show: true, ok: false, titulo: 'Error de conexión', msg: 'No se pudo conectar con el servidor.', enviados: 0, fallidos: 0, emailReal: false };
+  } finally {
+    enviando.value = false;
+  }
 };
-const guardarBorrador = () => alert('💾 Borrador guardado (conectar con backend)');
+const guardarBorrador = async () => {
+  if (saving.value) return;
+  saving.value = true;
+  const payload = { asunto: asunto.value.trim(), html: editorEl.value.innerHTML };
+  try {
+    let res;
+    if (isEditing.value) {
+      res = await fetch(`/api/boletines/${boletinId.value}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } else {
+      res = await fetch('/api/boletines', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    if (!isEditing.value) {
+      boletinId.value = data.id;
+      // Actualiza la URL sin recargar para reflejar modo edición
+      router.replace(`/news/${data.id}`);
+    }
+    showToast(true, 'Borrador guardado correctamente');
+  } catch {
+    showToast(false, 'Error al guardar. Intenta nuevamente.');
+  } finally {
+    saving.value = false;
+  }
+};
 
-// Init with blank
-onMounted(() => { editorEl.value.innerHTML = '<p><br></p>'; });
+// Init: carga boletín existente o inicia en blanco
+onMounted(async () => {
+  cargarSuscriptores();   // en paralelo, no bloqueante
+  const idParam = route.params.id;
+  if (idParam && idParam !== 'nueva') {
+    try {
+      const res = await fetch(`/api/boletines/${idParam}`);
+      if (res.ok) {
+        const data = await res.json();
+        boletinId.value   = data.id;
+        asunto.value      = data.asunto;
+        yaEnviado.value   = data.estado === 'Enviado';
+        editorEl.value.innerHTML = data.html || '<p><br></p>';
+        return;
+      }
+    } catch { /* si falla, inicia en blanco */ }
+  }
+  editorEl.value.innerHTML = '<p><br></p>';
+});
 </script>
 
 <style scoped>

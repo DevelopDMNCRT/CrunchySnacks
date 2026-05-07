@@ -58,9 +58,9 @@
               <span
                 :class="[
                   'rounded-full px-2.5 py-0.5 text-theme-xs font-medium',
-                  usuario.rol === 'Admin'
+                  (usuario.rol === 'Admin' || usuario.rol === 'Administrador')
                     ? 'bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400'
-                    : usuario.rol === 'Editor'
+                    : (usuario.rol === 'Editor' || usuario.rol === 'Operativo')
                     ? 'bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/15 dark:text-blue-light-400'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                 ]"
@@ -72,14 +72,6 @@
             <!-- Acciones -->
             <td class="px-5 py-4 sm:px-6">
               <div class="flex items-center gap-1">
-                <!-- Ver -->
-                <button
-                  title="Ver"
-                  @click="$emit('ver', usuario)"
-                  class="flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-brand-500/10 dark:hover:text-brand-400 transition-colors"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                </button>
                 <!-- Editar -->
                 <button
                   title="Editar"
@@ -119,5 +111,5 @@ defineProps({
   },
 });
 
-defineEmits(['ver', 'editar', 'eliminar']);
+defineEmits(['editar', 'eliminar']);
 </script>

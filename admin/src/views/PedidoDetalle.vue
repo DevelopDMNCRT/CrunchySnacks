@@ -50,24 +50,47 @@
 
             <!-- Fila 2: Estado, Correo, Teléfono, Ver Mapa -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-5">
-              <!-- Estado dropdown -->
+              <!-- Estado dropdown + botón guardar -->
               <div>
                 <p class="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase mb-1.5">Estado</p>
-                <div class="relative">
-                  <select
-                    v-model="pedido.estado"
-                    class="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent py-2 pl-3 pr-8 text-sm font-medium focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
-                    :class="estadoTextClase(pedido.estado)"
+                <div class="flex flex-col gap-2">
+                  <!-- Select -->
+                  <div class="relative">
+                    <select
+                      v-model="estadoPendiente"
+                      class="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent py-2 pl-3 pr-8 text-sm font-medium focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                      :class="estadoTextClase(estadoPendiente)"
+                    >
+                      <option value="Nuevo">Nuevo</option>
+                      <option value="En proceso">En proceso</option>
+                      <option value="Completado">Completado</option>
+                      <option value="Fallido">Fallido</option>
+                      <option value="Cancelado">Cancelado</option>
+                    </select>
+                    <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </span>
+                  </div>
+
+                  <!-- Email indicator -->
+                  <div v-if="estadoTriggerEmail" class="flex items-center gap-1.5 rounded-md bg-blue-light-50 dark:bg-blue-light-500/10 px-2.5 py-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-light-500 flex-shrink-0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <span class="text-xs font-medium text-blue-light-600 dark:text-blue-light-400">Se enviará correo al cliente</span>
+                  </div>
+
+                  <!-- Botón guardar -->
+                  <button
+                    @click="guardarEstado"
+                    :disabled="savingEstado || estadoPendiente === pedido.estado"
+                    class="flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors"
+                    :class="estadoPendiente !== pedido.estado
+                      ? 'bg-brand-500 text-white hover:bg-brand-600'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'"
                   >
-                    <option value="Nuevo">Nuevo</option>
-                    <option value="En proceso">En proceso</option>
-                    <option value="Completado">Completado</option>
-                    <option value="Fallido">Fallido</option>
-                    <option value="Cancelado">Cancelado</option>
-                  </select>
-                  <span class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-                  </span>
+                    <svg v-if="savingEstado" class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 0 0-9-9"/><circle cx="12" cy="12" r="9" stroke-opacity="0.3"/></svg>
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                    {{ savingEstado ? 'Guardando...' : 'Guardar estado' }}
+                  </button>
                 </div>
               </div>
               <div>
@@ -181,89 +204,111 @@
       <router-link to="/pedidos" class="mt-4 text-sm text-brand-500 hover:text-brand-600">← Volver a Pedidos</router-link>
     </div>
   </AdminLayout>
+
+  <!-- Toast de confirmación -->
+  <Teleport to="body">
+    <transition name="toast-slide">
+      <div v-if="toast.show" class="fixed bottom-6 right-6 z-[9999] flex items-center gap-3 rounded-xl px-5 py-3.5 shadow-xl text-sm font-medium"
+        :class="toast.type === 'success' ? 'bg-success-500 text-white' : 'bg-error-500 text-white'"
+      >
+        <svg v-if="toast.type === 'success'" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        {{ toast.msg }}
+      </div>
+    </transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import AdminLayout from '@/components/layout/AdminLayout.vue';
 
 const route = useRoute();
+const pedido = ref(null);
+const loading = ref(true);
 
-// ── Mock data (en producción vendrá del backend) ─────────────────────────
-const estados  = ['Nuevo', 'En proceso', 'Completado', 'Fallido', 'Cancelado'];
-const ciudades = ['CDMX', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'Querétaro', 'Mérida'];
-const clientes = [
-  'Ana Ruiz','Carlos Méndez','Laura Torres','Diego Herrera','Sofía Vargas',
-  'Miguel Reyes','Valentina Cruz','Andrés Leal','Camila Mora','Javier Ponce',
-  'Elena Rios','Fernando Díaz','Isabella Soto','Rodrigo Núñez','Daniela Ortiz',
-  'Emilio Vega','Mariana Fuentes','Tomás Gil','Natalia Romero','Pablo Acosta',
-  'Lucía Flores','Sebastián Peña','Renata Castro','Óscar Moreno','Xiomara Rubio',
-];
-const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-const fecha = (i) => {
-  const d = new Date(2025, Math.floor(i / 2) % 12, (i % 28) + 1);
-  return `${d.getDate().toString().padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+// Estados que disparan correo al cliente (debe coincidir con EMAIL_TRIGGERS en el server)
+const EMAIL_STATES = new Set(['En proceso', 'Completado', 'Cancelado', 'Fallido']);
+
+// Estado local pendiente de guardar
+const estadoPendiente = ref('');
+const savingEstado    = ref(false);
+const toast = ref({ show: false, type: 'success', msg: '' });
+
+function showToast(type, msg) {
+  toast.value = { show: true, type, msg };
+  setTimeout(() => { toast.value.show = false; }, 3500);
+}
+
+const estadoTriggerEmail = computed(() => EMAIL_STATES.has(estadoPendiente.value));
+
+const fetchPedido = async () => {
+  try {
+    const res = await fetch(`/api/pedidos/${route.params.id}`);
+    if (!res.ok) throw new Error('Pedido no encontrado');
+    const data = await res.json();
+    
+    const d = new Date(data.created_at);
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const fechaFormateada = `${d.getDate().toString().padStart(2,'0')} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+
+    pedido.value = {
+      id: data.id,
+      orden: data.orden,
+      cliente: data.nombre,
+      fecha: fechaFormateada,
+      ciudad: data.ciudad,
+      estado: data.estado,
+      correo: data.correo,
+      telefono: data.telefono,
+      domicilio: data.domicilio,
+      nota: data.notas,
+      items: data.items || [],
+      envio: parseFloat(data.envio),
+      total: parseFloat(data.total)
+    };
+    // Inicializar el estado pendiente con el valor guardado en BD
+    estadoPendiente.value = data.estado;
+  } catch (error) {
+    console.error('Error fetching pedido:', error);
+  } finally {
+    loading.value = false;
+  }
 };
-const domicilios = [
-  'Av. Insurgentes Sur 1602, Col. Crédito Constructor, Benito Juárez, CDMX 03940',
-  'Av. Vallarta 3959, Fracc. Monraz, Guadalajara, Jalisco 44670',
-  'Av. Constitución 2050 Ote., Centro, Monterrey, NL 64000',
-  'Blvd. Atlixcáyotl 6201, Reserva Territorial Atlixcáyotl, Puebla 72190',
-  'Blvd. Agua Caliente 10750, Aviación, Tijuana, B.C. 22014',
-  'Av. Constituyentes 42, El Marqués, Querétaro 76240',
-  'Paseo de Montejo 460, Centro, Mérida, Yucatán 97000',
-];
 
-const productosEjemplo = [
-  [
-    { id:1, nombre:'Camiseta Rock Classic', variante:'Talla L, Negro', imagen:'/images/product/product-01.jpg', precio:299, cantidad:2 },
-    { id:2, nombre:'Gorra Tour 2025',       variante:'Única, Blanco',  imagen:'/images/product/product-02.jpg', precio:199, cantidad:1 },
-  ],
-  [
-    { id:3, nombre:'Hoodie Vintage Logo',   variante:'Talla M, Gris',  imagen:'/images/product/product-03.jpg', precio:650, cantidad:1 },
-  ],
-  [
-    { id:4, nombre:'Camiseta Band Tee',     variante:'Talla S, Azul',  imagen:'/images/product/product-04.jpg', precio:349, cantidad:3 },
-    { id:5, nombre:'Calcetines Logo Pack',  variante:'Talla Única',    imagen:'/images/product/product-05.jpg', precio:99,  cantidad:2 },
-  ],
-];
-
-const notas = [
-  'Por favor dejar con el portero, no tocar el timbre.',
-  'Entregar únicamente entre 10am y 2pm.',
-  null,
-  'Envolver para regalo, es un cumpleaños.',
-  null,
-  'Departamento 4B, segundo piso.',
-  'Llamar al celular antes de llegar.',
-];
-
-const todos = Array.from({ length: 25 }, (_, i) => {
-  const items  = productosEjemplo[i % productosEjemplo.length];
-  const sub    = items.reduce((s, x) => s + x.precio * x.cantidad, 0);
-  const envio  = sub > 999 ? 0 : 150;
-  return {
-    id:        i + 1,
-    orden:     String(i + 1).padStart(6, '0'),
-    cliente:   clientes[i],
-    fecha:     fecha(i),
-    ciudad:    ciudades[i % ciudades.length],
-    estado:    estados[i % estados.length],
-    correo:    `${clientes[i].split(' ')[0].toLowerCase()}@ejemplo.mx`,
-    telefono:  `+52 55 ${(1000 + i * 37).toString().padStart(4,'0')} ${(1000 + i * 91).toString().padStart(4,'0')}`,
-    domicilio: domicilios[i % domicilios.length],
-    nota:      notas[i % notas.length],
-    items,
-    envio,
-    total:     sub + envio,
-  };
+onMounted(() => {
+  fetchPedido();
 });
 
-const pedido = computed(() => todos.find(p => p.id === Number(route.params.id)) ?? null);
+const guardarEstado = async () => {
+  if (!pedido.value || savingEstado.value) return;
+  if (estadoPendiente.value === pedido.value.estado) return;
+  savingEstado.value = true;
+  try {
+    const res = await fetch(`/api/pedidos/${pedido.value.id}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: estadoPendiente.value })
+    });
+    if (!res.ok) throw new Error('Error al actualizar el estado');
+    const data = await res.json();
+    // Actualizar el estado guardado localmente
+    pedido.value.estado = estadoPendiente.value;
+    const emailMsg = data.emailEnviado ? ' · Correo enviado al cliente ✓' : '';
+    showToast('success', `Estado actualizado a "${estadoPendiente.value}"${emailMsg}`);
+  } catch (error) {
+    console.error('Error updating status:', error);
+    // Rollback visual
+    estadoPendiente.value = pedido.value.estado;
+    showToast('error', 'Error al guardar el estado. Intenta nuevamente.');
+  } finally {
+    savingEstado.value = false;
+  }
+};
 
 const totalItems = computed(() => pedido.value?.items.reduce((s, x) => s + x.cantidad, 0) ?? 0);
-const subtotal   = computed(() => pedido.value?.items.reduce((s, x) => s + x.precio * x.cantidad, 0) ?? 0);
+const subtotal   = computed(() => pedido.value?.items.reduce((s, x) => s + (x.precio * x.cantidad), 0) ?? 0);
 
 const estadoTextClase = (estado) => {
   const m = {
@@ -276,3 +321,23 @@ const estadoTextClase = (estado) => {
   return m[estado] ?? '';
 };
 </script>
+
+<style scoped>
+.toast-slide-enter-active,
+.toast-slide-leave-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.toast-slide-enter-from,
+.toast-slide-leave-to {
+  opacity: 0;
+  transform: translateY(12px);
+}
+
+.animate-spin {
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+</style>

@@ -3,83 +3,83 @@
     <div class="header-banner">
       <div class="banner-overlay"></div>
       <div class="banner-content">
-        <h1>Portal de Facturación</h1>
-        <p>Genera tu factura de forma rápida y sencilla</p>
+        <h1>{{ t('facturacion.bannerTitle') }}</h1>
+        <p>{{ t('facturacion.bannerSub') }}</p>
       </div>
     </div>
 
     <div class="container">
       <div class="form-card">
-        <h2 class="form-title">Datos Fiscales</h2>
-        <p class="form-subtitle">Por favor llena la siguiente información con los datos de tu constancia de situación fiscal.</p>
+        <h2 class="form-title">{{ t('facturacion.formTitle') }}</h2>
+        <p class="form-subtitle">{{ t('facturacion.formSubtitle') }}</p>
 
         <form @submit.prevent="submitForm" class="billing-form">
           <!-- Row 1 -->
           <div class="form-row row-1">
             <div class="input-group">
-              <label for="orden"># Orden</label>
-              <input type="text" id="orden" v-model="form.orden" placeholder="Ej. AM-12345" required>
+              <label for="orden">{{ t('facturacion.labelOrden') }}</label>
+              <input type="text" id="orden" v-model="form.orden" :placeholder="t('facturacion.phOrden')" required>
             </div>
             <div class="input-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" v-model="form.email" placeholder="correo@ejemplo.com" required>
+              <label for="email">{{ t('facturacion.labelEmail') }}</label>
+              <input type="email" id="email" v-model="form.email" :placeholder="t('facturacion.phEmail')" required>
             </div>
           </div>
 
           <!-- Row 2 -->
           <div class="form-row row-2">
             <div class="input-group">
-              <label for="nombre">Nombre Fiscal / Razón Social</label>
-              <input type="text" id="nombre" v-model="form.nombre" placeholder="Nombre completo o Razón Social" required>
+              <label for="nombre">{{ t('facturacion.labelNombre') }}</label>
+              <input type="text" id="nombre" v-model="form.nombre" :placeholder="t('facturacion.phNombre')" required>
             </div>
             <div class="input-group">
-              <label for="rfc">RFC</label>
-              <input type="text" id="rfc" v-model="form.rfc" placeholder="XAXX010101000" style="text-transform: uppercase;" required>
+              <label for="rfc">{{ t('facturacion.labelRfc') }}</label>
+              <input type="text" id="rfc" v-model="form.rfc" :placeholder="t('facturacion.phRfc')" style="text-transform: uppercase;" required>
             </div>
           </div>
 
           <!-- Row 3 -->
           <div class="form-row row-3">
             <div class="input-group">
-              <label for="calle">Calle</label>
-              <input type="text" id="calle" v-model="form.calle" placeholder="Nombre de la calle" required>
+              <label for="calle">{{ t('facturacion.labelCalle') }}</label>
+              <input type="text" id="calle" v-model="form.calle" :placeholder="t('facturacion.phCalle')" required>
             </div>
             <div class="input-group">
-              <label for="ext"># Ext</label>
-              <input type="text" id="ext" v-model="form.ext" placeholder="Número Exterior" required>
+              <label for="ext">{{ t('facturacion.labelExt') }}</label>
+              <input type="text" id="ext" v-model="form.ext" :placeholder="t('facturacion.phExt')" required>
             </div>
             <div class="input-group">
-              <label for="int"># Int</label>
-              <input type="text" id="int" v-model="form.int" placeholder="Número Interior">
+              <label for="int">{{ t('facturacion.labelInt') }}</label>
+              <input type="text" id="int" v-model="form.int" :placeholder="t('facturacion.phInt')">
             </div>
           </div>
 
           <!-- Row 4 -->
           <div class="form-row row-4">
             <div class="input-group">
-              <label for="colonia">Colonia</label>
-              <input type="text" id="colonia" v-model="form.colonia" placeholder="Tu colonia" required>
+              <label for="colonia">{{ t('facturacion.labelColonia') }}</label>
+              <input type="text" id="colonia" v-model="form.colonia" :placeholder="t('facturacion.phColonia')" required>
             </div>
             <div class="input-group">
-              <label for="ciudad">Ciudad / Municipio</label>
-              <input type="text" id="ciudad" v-model="form.ciudad" placeholder="Ciudad" required>
+              <label for="ciudad">{{ t('facturacion.labelCiudad') }}</label>
+              <input type="text" id="ciudad" v-model="form.ciudad" :placeholder="t('facturacion.phCiudad')" required>
             </div>
             <div class="input-group">
-              <label for="estado">Estado</label>
-              <input type="text" id="estado" v-model="form.estado" placeholder="Estado" required>
+              <label for="estado">{{ t('facturacion.labelEstado') }}</label>
+              <input type="text" id="estado" v-model="form.estado" :placeholder="t('facturacion.phEstado')" required>
             </div>
             <div class="input-group">
-              <label for="cp">CP</label>
-              <input type="text" id="cp" v-model="form.cp" placeholder="Código Postal" required>
+              <label for="cp">{{ t('facturacion.labelCp') }}</label>
+              <input type="text" id="cp" v-model="form.cp" :placeholder="t('facturacion.phCp')" required>
             </div>
             <div class="input-group">
-              <label for="cfdi">Uso de CFDI</label>
+              <label for="cfdi">{{ t('facturacion.labelCfdi') }}</label>
               <div class="select-wrapper">
                 <select id="cfdi" v-model="form.cfdi" required>
-                  <option value="" disabled>Selecciona...</option>
-                  <option value="G01">G01 - Adquisición de mercancías</option>
-                  <option value="G03">G03 - Gastos en general</option>
-                  <option value="P01">P01 - Por definir</option>
+                  <option value="" disabled>{{ t('facturacion.cfdiSelect') }}</option>
+                  <option value="G01">{{ t('facturacion.cfdiG01') }}</option>
+                  <option value="G03">{{ t('facturacion.cfdiG03') }}</option>
+                  <option value="P01">{{ t('facturacion.cfdiP01') }}</option>
                 </select>
                 <span class="select-arrow"></span>
               </div>
@@ -88,7 +88,7 @@
 
           <!-- File Upload -->
           <div class="file-upload-section">
-            <label class="upload-label">Comprobante de Situación Fiscal (PDF o Imagen)</label>
+            <label class="upload-label">{{ t('facturacion.uploadLabel') }}</label>
             <div class="drop-zone" :class="{ 'drag-over': isDragging }" @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false" @drop.prevent="handleDrop" @click="$refs.fileInput.click()">
               <input type="file" ref="fileInput" class="hidden-input" @change="handleFileChange" accept=".pdf,image/*">
               <div class="drop-content" v-if="!form.file">
@@ -97,8 +97,8 @@
                   <polyline points="17 8 12 3 7 8"></polyline>
                   <line x1="12" y1="3" x2="12" y2="15"></line>
                 </svg>
-                <p><strong>Haz clic para seleccionar</strong> o arrastra y suelta tu archivo aquí</p>
-                <span class="file-hint">Máximo 5MB</span>
+                <p><strong>{{ t('facturacion.uploadText') }}</strong> {{ t('facturacion.uploadSubtext') }}</p>
+                <span class="file-hint">{{ t('facturacion.uploadHint') }}</span>
               </div>
               <div class="drop-content file-selected" v-else>
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="file-icon">
@@ -109,7 +109,7 @@
                   <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
                 <p class="file-name">{{ form.file.name }}</p>
-                <button type="button" class="remove-file-btn" @click.stop="form.file = null">Cambiar archivo</button>
+                <button type="button" class="remove-file-btn" @click.stop="form.file = null">{{ t('facturacion.changeFile') }}</button>
               </div>
             </div>
           </div>
@@ -117,7 +117,7 @@
           <!-- Submit Button -->
           <div class="form-actions">
             <button type="submit" class="submit-btn" :disabled="isSubmitting">
-              {{ isSubmitting ? 'Procesando...' : 'Solicitar Factura' }}
+              {{ isSubmitting ? t('facturacion.processing') : t('facturacion.submitBtn') }}
             </button>
           </div>
         </form>
@@ -128,6 +128,9 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useLocale } from '../composables/useLocale.js'
+
+const { t } = useLocale()
 
 const form = reactive({
   orden: '',
@@ -165,9 +168,8 @@ const handleDrop = (e) => {
 const submitForm = () => {
   isSubmitting.value = true
   setTimeout(() => {
-    alert('¡Solicitud de factura enviada con éxito! La recibirás en tu correo en un plazo de 24-48 hrs.')
+    alert(t('facturacion.successMsg'))
     isSubmitting.value = false
-    // Resetear formulario si se desea
   }, 1500)
 }
 
