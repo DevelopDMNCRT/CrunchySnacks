@@ -28,7 +28,7 @@ const EMAIL_TRIGGERS = {
         <h2 style="color:#237650">¡Tu pedido está en preparación! 📦</h2>
         <p>Hola <strong>${p.nombre}</strong>,</p>
         <p>Tu pedido <strong>#${p.orden}</strong> ya está siendo preparado por nuestro equipo. Pronto lo enviaremos a tu domicilio.</p>
-        <p style="color:#666">Puedes rastrear tu pedido en <a href="https://amigomerch.mx/rastreo" style="color:#237650">amigomerch.mx/rastreo</a> usando el número <strong>#${p.orden}</strong>.</p>
+        <p style="color:#666">Puedes rastrear tu pedido en <a href="https://amigo-merch.vercel.app/rastreo" style="color:#237650">amigo-merch.vercel.app/rastreo</a> usando el número <strong>#${p.orden}</strong>.</p>
         <p>¡Gracias por tu compra!</p>
         <p style="color:#aaa;font-size:12px">Amigo Merch — hola@amigomerch.mx</p>
       </div>
