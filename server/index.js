@@ -894,6 +894,80 @@ app.get('/api/estadisticas/ventas-mes', async (req, res) => {
   }
 });
 
+// --- Reporte de Ventas Mensuales ---
+// GET /api/reportes/ventas?anio=2025&tienda_id=1&mes=Enero
+app.get('/api/reportes/ventas', async (req, res) => {
+  try {
+    const today = new Date();
+    const anio = parseInt(req.query.anio) || today.getFullYear();
+    const { tienda_id, mes } = req.query;
+
+    const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    // Use EXTRACT(MONTH) to avoid locale-dependent TO_CHAR month names (English vs Spanish)
+    let query = `
+      SELECT
+        EXTRACT(MONTH FROM p.created_at)::int AS mes_num,
+        item->>'nombre' AS producto,
+        SUM((item->>'cantidad')::numeric * (item->>'precio')::numeric) AS total
+      FROM pedidos p
+      CROSS JOIN json_array_elements(p.items::json) AS item
+      WHERE
+        EXTRACT(YEAR FROM p.created_at) = $1
+        AND p.estado NOT IN ('Cancelado', 'Fallido')
+    `;
+
+    const params = [anio];
+    let paramIdx = 2;
+
+    // Filter by tienda using EXISTS subquery
+    // NOTE: items JSON uses 'producto_id' (not 'id') for the real product ID
+    if (tienda_id && tienda_id !== 'todas') {
+      const tiendaRes = await pool.query('SELECT nombre FROM tiendas WHERE id = $1', [tienda_id]);
+      if (tiendaRes.rows.length) {
+        query += ` AND EXISTS (
+          SELECT 1 FROM products WHERE id = (item->>'producto_id')::int AND tienda = $${paramIdx}
+        )`;
+        params.push(tiendaRes.rows[0].nombre);
+        paramIdx++;
+      }
+    }
+
+    // Filter by specific month number
+    if (mes && mes !== 'todos') {
+      const mesNum = MESES.indexOf(mes) + 1;
+      if (mesNum > 0) {
+        query += ` AND EXTRACT(MONTH FROM p.created_at) = $${paramIdx}`;
+        params.push(mesNum);
+        paramIdx++;
+      }
+    }
+
+    query += `
+      GROUP BY mes_num, item->>'nombre'
+      ORDER BY mes_num ASC, producto ASC
+    `;
+
+    const result = await pool.query(query, params);
+
+    // Build monthly totals for charts using Spanish month names
+    const porMes = {};
+    MESES.forEach(m => { porMes[m] = 0; });
+
+    const rows = result.rows.map(r => {
+      const mesNombre = MESES[r.mes_num - 1]; // Map month number → Spanish name
+      const total = parseFloat(r.total);
+      if (porMes[mesNombre] !== undefined) porMes[mesNombre] += total;
+      return { mes: mesNombre, producto: r.producto, total };
+    });
+
+    res.json({ rows, porMes });
+  } catch (err) {
+    console.error('Error fetching reporte ventas:', err);
+    res.status(500).json({ error: 'Failed to fetch reporte de ventas', details: err.message });
+  }
+});
+
 // Global Error Handler
 app.use((err, _req, res, _next) => {
   console.error('Global error:', err);

@@ -270,8 +270,11 @@ const menuGroups = [
         name: "Tiendas",
         path: "/tiendas",
       },
-
-
+      {
+        icon: ListIcon, // You can change this to a different icon like DocumentReport if available, using ListIcon for now.
+        name: "Reporte",
+        path: "/reporte",
+      },
     ],
   },
 ];
