@@ -98,7 +98,7 @@
           </form>
 
           <div class="payment-brick-section mt-4">
-            <h3 style="margin-bottom: 20px;">Información de Pago</h3>
+            <h3 style="margin-bottom: 20px;">Pago con Tarjeta</h3>
             <div id="paymentBrick_container"></div>
           </div>
         </div>
@@ -401,7 +401,7 @@ const initPaymentBrick = async (publicKey) => {
   const mp = new window.MercadoPago(publicKey, { locale: 'es-MX' });
   const bricksBuilder = mp.bricks();
   
-  bricksBuilder.create("payment", "paymentBrick_container", {
+  bricksBuilder.create("cardPayment", "paymentBrick_container", {
     initialization: {
       amount: cartGetters.totalPrice.value + cartGetters.shippingCost.value,
       payer: {
@@ -409,16 +409,14 @@ const initPaymentBrick = async (publicKey) => {
       }
     },
     customization: {
-      paymentMethods: {
-        creditCard: "all",
-        debitCard: "all",
-      },
+      // El Card Payment Brick asume tarjetas directamente
     },
     callbacks: {
       onReady: () => {
         // Brick listo
       },
-      onSubmit: ({ selectedPaymentMethod, formData }) => {
+      onSubmit: (arg) => {
+        const formData = arg.formData || arg;
         return new Promise((resolve, reject) => {
           // Validar formulario manualmente
           if (!checkoutFormRef.value.checkValidity()) {
