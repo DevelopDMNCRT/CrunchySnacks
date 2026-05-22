@@ -404,6 +404,9 @@ const initPaymentBrick = async (publicKey) => {
   bricksBuilder.create("payment", "paymentBrick_container", {
     initialization: {
       amount: cartGetters.totalPrice.value + cartGetters.shippingCost.value,
+      payer: {
+        email: 'cliente@amigomerch.mx' // Pre-llenado dummy para ocultar el input de correo del Brick
+      }
     },
     customization: {
       paymentMethods: {
@@ -421,6 +424,11 @@ const initPaymentBrick = async (publicKey) => {
           if (!checkoutFormRef.value.checkValidity()) {
             checkoutFormRef.value.reportValidity();
             return reject(new Error("Faltan campos en el formulario de envío"));
+          }
+          
+          // Reemplazar el correo dummy con el correo real del usuario
+          if (formData.payer) {
+            formData.payer.email = form.correo;
           }
           
           createOrderAndPay(formData)
