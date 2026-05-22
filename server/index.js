@@ -1038,6 +1038,11 @@ app.post('/api/pagos/crear-preferencia', async (req, res) => {
   }
 });
 
+// GET /api/pagos/config — Obtiene la llave pública de MP
+app.get('/api/pagos/config', (req, res) => {
+  res.json({ public_key: process.env.MERCADOPAGO_PUBLIC_KEY });
+});
+
 // POST /api/pagos/procesar — Recibe datos del Brick y procesa el pago directo
 app.post('/api/pagos/procesar', async (req, res) => {
   try {

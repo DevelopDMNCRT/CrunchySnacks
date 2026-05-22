@@ -10,7 +10,7 @@
         <!-- Formulario -->
         <div class="checkout-form-section">
           <h2>{{ t('checkout.contactData') }}</h2>
-          <form @submit.prevent="processCheckout" class="checkout-form" v-show="!showPaymentBrick">
+          <form class="checkout-form" ref="checkoutFormRef">
             
             <div class="form-row">
               <div class="form-group">
@@ -95,17 +95,11 @@
               {{ t('checkout.addLocation') }}
             </button>
 
-            <button type="submit" class="pay-btn" :disabled="cartState.items.length === 0 || loading">
-              {{ loading ? 'Procesando...' : 'Continuar al Pago' }}
-            </button>
           </form>
 
-          <div v-show="showPaymentBrick" class="payment-brick-section mt-4">
+          <div class="payment-brick-section mt-4">
             <h3 style="margin-bottom: 20px;">Información de Pago</h3>
             <div id="paymentBrick_container"></div>
-            <button @click="showPaymentBrick = false" class="btn-location" style="margin-top: 20px;">
-              Volver a mis datos
-            </button>
           </div>
         </div>
 
@@ -317,25 +311,32 @@ const updateMapFromAddress = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   if (cartState.items.length === 0) {
     router.push('/')
+    return
+  }
+  
+  try {
+    const res = await fetch('/api/pagos/config');
+    const data = await res.json();
+    if (data.public_key) {
+      initPaymentBrick(data.public_key);
+    }
+  } catch (err) {
+    console.error("Error loading MP config", err);
   }
 })
 
 const loading = ref(false)
-const showPaymentBrick = ref(false)
+const checkoutFormRef = ref(null)
 
-const processCheckout = async () => {
-  if (cartState.items.length === 0) return;
-  loading.value = true;
-  
+const createOrderAndPay = async (formData) => {
   try {
     const subtotal = cartGetters.totalPrice.value;
     const envio = cartGetters.shippingCost.value;
     const total = subtotal + envio;
 
-    // Build address string
     const parts = [];
     if (form.calle) parts.push(`${form.calle} ${form.numExt} ${form.numInt ? 'Int. ' + form.numInt : ''}`.trim());
     if (form.colonia) parts.push(`Col. ${form.colonia}`);
@@ -365,7 +366,7 @@ const processCheckout = async () => {
       total
     };
 
-    // 1. Crear pedido en la BD
+    // 1. Crear pedido en BD
     const pedidoRes = await fetch('/api/pedidos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -374,37 +375,28 @@ const processCheckout = async () => {
     if (!pedidoRes.ok) throw new Error('Error al crear el pedido');
     const pedido = await pedidoRes.json();
 
-    // 2. Crear preferencia de Mercado Pago
-    const mpRes = await fetch('/api/pagos/crear-preferencia', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pedidoId: pedido.id,
-        items,
-        total,
-        nombre: form.nombre,
-        correo: form.correo,
-        envio,
-      })
+    // 2. Procesar el pago con el backend
+    const payRes = await fetch("/api/pagos/procesar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formData, pedidoId: pedido.id })
     });
-    if (!mpRes.ok) throw new Error('Error al crear preferencia de pago');
-    const mpData = await mpRes.json();
+    const result = await payRes.json();
 
-    // 3. Mostrar el Payment Brick de Mercado Pago
-    showPaymentBrick.value = true;
-    loading.value = false;
-    
-    // Iniciar el Brick
-    await initPaymentBrick(mpData.preference_id, mpData.public_key, pedido.id);
-
+    if (result.status === 'approved' || result.status === 'in_process' || result.status === 'pending') {
+       cartActions.clearCart();
+       window.location.href = `/pago/exito?pedido_id=${pedido.id}`;
+    } else {
+       throw new Error(result.status_detail || 'Pago rechazado');
+    }
   } catch (error) {
     console.error(error);
-    alert('Ocurrió un error al procesar el pedido. Intenta nuevamente.');
-    loading.value = false;
+    alert('Ocurrió un error al procesar tu compra. Revisa tus datos e intenta nuevamente.');
+    throw error;
   }
 }
 
-const initPaymentBrick = async (preferenceId, publicKey, pedidoId) => {
+const initPaymentBrick = async (publicKey) => {
   await loadMercadoPago();
   const mp = new window.MercadoPago(publicKey, { locale: 'es-MX' });
   const bricksBuilder = mp.bricks();
@@ -412,7 +404,6 @@ const initPaymentBrick = async (preferenceId, publicKey, pedidoId) => {
   bricksBuilder.create("payment", "paymentBrick_container", {
     initialization: {
       amount: cartGetters.totalPrice.value + cartGetters.shippingCost.value,
-      preferenceId: preferenceId,
     },
     customization: {
       paymentMethods: {
@@ -426,22 +417,15 @@ const initPaymentBrick = async (preferenceId, publicKey, pedidoId) => {
       },
       onSubmit: ({ selectedPaymentMethod, formData }) => {
         return new Promise((resolve, reject) => {
-          fetch("/api/pagos/procesar", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ formData, pedidoId })
-          })
-          .then((res) => res.json())
-          .then((res) => {
-            if (res.status === 'approved' || res.status === 'in_process' || res.status === 'pending') {
-               resolve();
-               cartActions.clearCart();
-               window.location.href = `/pago/exito?pedido_id=${pedidoId}`;
-            } else {
-               reject(new Error(res.status_detail || 'Pago rechazado'));
-            }
-          })
-          .catch((err) => reject(err));
+          // Validar formulario manualmente
+          if (!checkoutFormRef.value.checkValidity()) {
+            checkoutFormRef.value.reportValidity();
+            return reject(new Error("Faltan campos en el formulario de envío"));
+          }
+          
+          createOrderAndPay(formData)
+            .then(() => resolve())
+            .catch((err) => reject(err));
         });
       },
       onError: (error) => {
