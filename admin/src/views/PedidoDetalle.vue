@@ -61,6 +61,7 @@
                       class="w-full appearance-none rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent py-2 pl-3 pr-8 text-sm font-medium focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
                       :class="estadoTextClase(estadoPendiente)"
                     >
+                      <option value="Pendiente de pago">Pendiente de pago</option>
                       <option value="Nuevo">Nuevo</option>
                       <option value="En proceso">En proceso</option>
                       <option value="Completado">Completado</option>
@@ -312,6 +313,7 @@ const subtotal   = computed(() => pedido.value?.items.reduce((s, x) => s + (x.pr
 
 const estadoTextClase = (estado) => {
   const m = {
+    'Pendiente de pago': 'text-purple-600 dark:text-purple-400',
     'Nuevo':      'text-blue-light-600 dark:text-blue-light-400',
     'En proceso': 'text-warning-600 dark:text-warning-400',
     'Completado': 'text-success-600 dark:text-success-500',

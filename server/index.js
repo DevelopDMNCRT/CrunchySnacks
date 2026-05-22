@@ -7,6 +7,12 @@ const jwt = require('jsonwebtoken');
 const { upload } = require('./cloudinary');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
+const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
+
+// ── Mercado Pago ───────────────────────────────────────────────────────────
+const mpClient = new MercadoPagoConfig({
+  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
+});
 
 // ── Email transporter ──────────────────────────────────────────────────────
 const mailer = nodemailer.createTransport({
@@ -561,9 +567,9 @@ app.post('/api/pedidos', async (req, res) => {
     const orden = Math.floor(100000 + Math.random() * 900000).toString();
 
     const result = await pool.query(
-      `INSERT INTO pedidos (orden, nombre, correo, telefono, pais, estado_env, ciudad, calle, num_ext, num_int, colonia, cp, domicilio, notas, items, subtotal, envio, total) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING *`,
-      [orden, nombre, correo, telefono, pais, estado_env, ciudad, calle, num_ext, num_int, colonia, cp, domicilio, notas, JSON.stringify(items), subtotal, envio, total]
+      `INSERT INTO pedidos (orden, nombre, correo, telefono, pais, estado_env, ciudad, calle, num_ext, num_int, colonia, cp, domicilio, notas, items, subtotal, envio, total, estado) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
+      [orden, nombre, correo, telefono, pais, estado_env, ciudad, calle, num_ext, num_int, colonia, cp, domicilio, notas, JSON.stringify(items), subtotal, envio, total, 'Pendiente de pago']
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
@@ -578,7 +584,7 @@ app.put('/api/pedidos/:id/estado', async (req, res) => {
     const { id } = req.params;
     const { estado } = req.body;
 
-    const VALID = ['Nuevo', 'En proceso', 'Completado', 'Fallido', 'Cancelado'];
+    const VALID = ['Pendiente de pago', 'Nuevo', 'En proceso', 'Completado', 'Fallido', 'Cancelado'];
     if (!VALID.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
 
     const result = await pool.query(
@@ -965,6 +971,125 @@ app.get('/api/reportes/ventas', async (req, res) => {
   } catch (err) {
     console.error('Error fetching reporte ventas:', err);
     res.status(500).json({ error: 'Failed to fetch reporte de ventas', details: err.message });
+  }
+});
+
+// ── Mercado Pago ──────────────────────────────────────────────────────────
+
+// POST /api/pagos/crear-preferencia
+// Recibe los datos del pedido ya creado y devuelve el init_point de MP
+app.post('/api/pagos/crear-preferencia', async (req, res) => {
+  try {
+    const { pedidoId, items, total, nombre, correo, envio } = req.body;
+
+    if (!pedidoId || !items || !items.length) {
+      return res.status(400).json({ error: 'Datos de pedido incompletos' });
+    }
+
+    const BASE_URL = process.env.CLIENT_URL || 'http://localhost:5173';
+
+    const mpItems = items.map(item => ({
+      id: String(item.producto_id || item.id),
+      title: item.nombre,
+      quantity: Number(item.cantidad),
+      unit_price: Number(item.precio),
+      currency_id: 'MXN',
+      picture_url: item.imagen || undefined,
+    }));
+
+    // Añadir costo de envío como item separado
+    if (envio && Number(envio) > 0) {
+      mpItems.push({
+        id: 'envio',
+        title: 'Envío',
+        quantity: 1,
+        unit_price: Number(envio),
+        currency_id: 'MXN',
+      });
+    }
+
+    const preference = new Preference(mpClient);
+    const response = await preference.create({
+      body: {
+        items: mpItems,
+        payer: {
+          name: nombre,
+          email: correo,
+        },
+        back_urls: {
+          success: `${BASE_URL}/pago/exito?pedido_id=${pedidoId}`,
+          failure: `${BASE_URL}/pago/fallido?pedido_id=${pedidoId}`,
+          pending: `${BASE_URL}/pago/pendiente?pedido_id=${pedidoId}`,
+        },
+        external_reference: String(pedidoId),
+        notification_url: `${process.env.SERVER_URL || 'http://localhost:3000'}/api/pagos/webhook`,
+      },
+    });
+
+    res.json({
+      preference_id: response.id,
+      init_point: response.init_point,        // producción
+      sandbox_init_point: response.sandbox_init_point, // pruebas
+    });
+  } catch (err) {
+    console.error('[MP] Error creando preferencia:', err);
+    res.status(500).json({ error: 'Error al crear preferencia de pago', details: err.message });
+  }
+});
+
+// POST /api/pagos/webhook — Notificaciones de Mercado Pago
+app.post('/api/pagos/webhook', async (req, res) => {
+  try {
+    const { type, data } = req.body;
+
+    if (type === 'payment' && data?.id) {
+      const payment = new Payment(mpClient);
+      const paymentData = await payment.get({ id: data.id });
+
+      const pedidoId = paymentData.external_reference;
+      const mpStatus = paymentData.status; // approved | pending | rejected | cancelled
+
+      const ESTADO_MAP = {
+        approved: 'En proceso',
+        pending:  'Nuevo',
+        in_process: 'Nuevo',
+        rejected: 'Fallido',
+        cancelled: 'Cancelado',
+      };
+
+      const nuevoEstado = ESTADO_MAP[mpStatus];
+      if (pedidoId && nuevoEstado) {
+        const result = await pool.query(
+          'UPDATE pedidos SET estado = $1 WHERE id = $2 RETURNING *',
+          [nuevoEstado, pedidoId]
+        );
+        if (result.rows.length > 0) {
+          sendStatusEmail(result.rows[0], nuevoEstado).catch(console.error);
+          console.log(`[MP WEBHOOK] Pedido ${pedidoId} → ${nuevoEstado} (MP: ${mpStatus})`);
+        }
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('[MP WEBHOOK] Error:', err);
+    res.sendStatus(200); // Siempre 200 para que MP no reintente
+  }
+});
+
+// GET /api/pagos/verificar/:pedidoId — El frontend verifica el estado tras volver de MP
+app.get('/api/pagos/verificar/:pedidoId', async (req, res) => {
+  try {
+    const { pedidoId } = req.params;
+    const result = await pool.query(
+      'SELECT id, orden, estado, total FROM pedidos WHERE id = $1',
+      [pedidoId]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Pedido no encontrado' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al verificar pedido' });
   }
 });
 

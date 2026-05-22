@@ -668,8 +668,12 @@ const guardar = async () => {
     fd.append('preventa_inicio', form.flag === 'Preventa' ? form.preventaInicio : '');
     fd.append('preventa_fin',    form.flag === 'Preventa' ? form.preventaFin    : '');
     fd.append('precio',          form.esVariable ? '' : (form.precio || ''));
-    fd.append('stock',          form.esVariable ? '0' : (form.stock || '0'));
-    fd.append('envio_especial', form.envioEspecial || '');
+    fd.append('stock',          form.esVariable ? '0' : form.stock);
+    if (form.envioEspecial !== '' && form.envioEspecial !== null && form.envioEspecial !== undefined) {
+      fd.append('envio_especial', form.envioEspecial);
+    } else {
+      fd.append('envio_especial', '');
+    }
     fd.append('es_variable',    form.esVariable ? 'true' : 'false');
     fd.append('es_publico',     form.esPublico ? 'true' : 'false');
     fd.append('slug',           slug.value);

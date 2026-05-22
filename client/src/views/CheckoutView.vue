@@ -126,11 +126,12 @@
             </div>
             <div class="total-row">
               <span>{{ t('checkout.shipping') }}</span>
-              <span>{{ formatPrice(150) }}</span>
+              <span v-if="cartGetters.shippingCost.value === 0" style="color: #237650; font-weight: 800;">¡Gratis!</span>
+              <span v-else>{{ formatPrice(cartGetters.shippingCost.value) }}</span>
             </div>
             <div class="total-row grand-total">
               <span>{{ t('checkout.total') }}</span>
-              <span>{{ formatPrice(cartGetters.totalPrice.value + 150) }}</span>
+              <span>{{ formatPrice(cartGetters.totalPrice.value + cartGetters.shippingCost.value) }}</span>
             </div>
           </div>
         </div>
@@ -321,7 +322,7 @@ const processCheckout = async () => {
   
   try {
     const subtotal = cartGetters.totalPrice.value;
-    const envio = 150; // TODO: Calculate based on logic
+    const envio = cartGetters.shippingCost.value;
     const total = subtotal + envio;
 
     // Build address string
@@ -354,24 +355,43 @@ const processCheckout = async () => {
       total
     };
 
-    const res = await fetch('/api/pedidos', {
+    // 1. Crear pedido en la BD
+    const pedidoRes = await fetch('/api/pedidos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
+    if (!pedidoRes.ok) throw new Error('Error al crear el pedido');
+    const pedido = await pedidoRes.json();
 
-    if (!res.ok) throw new Error('Error al crear el pedido');
+    // 2. Crear preferencia de Mercado Pago
+    const mpRes = await fetch('/api/pagos/crear-preferencia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        pedidoId: pedido.id,
+        items,
+        total,
+        nombre: form.nombre,
+        correo: form.correo,
+        envio,
+      })
+    });
+    if (!mpRes.ok) throw new Error('Error al crear preferencia de pago');
+    const mpData = await mpRes.json();
 
-    alert('¡Pedido confirmado exitosamente!');
+    // 3. Limpiar carrito y redirigir a Mercado Pago
     cartActions.clearCart();
-    router.push('/');
+    // En pruebas usar sandbox_init_point, en producción usar init_point
+    window.location.href = mpData.sandbox_init_point || mpData.init_point;
+
   } catch (error) {
     console.error(error);
     alert('Ocurrió un error al procesar el pedido. Intenta nuevamente.');
-  } finally {
     loading.value = false;
   }
 }
+
 </script>
 
 <style scoped>
