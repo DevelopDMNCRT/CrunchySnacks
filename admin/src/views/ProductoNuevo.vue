@@ -53,9 +53,9 @@
           <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] p-6">
             <h2 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-5">Datos Generales</h2>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-5">
               <!-- Tienda -->
-              <div>
+              <div class="lg:col-span-2">
                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Tienda</label>
                 <select v-model="form.tienda"
                   class="w-full h-11 rounded-xl border border-gray-300 dark:border-gray-700 bg-transparent px-4 text-sm text-gray-900 dark:text-white/90 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20">
@@ -91,6 +91,13 @@
                   <input v-model="form.envioEspecial" type="number" step="0.01" placeholder="0.00"
                     class="w-full h-11 rounded-xl border border-gray-300 dark:border-gray-700 bg-transparent pl-8 pr-4 text-sm text-gray-900 dark:text-white/90 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
                 </div>
+              </div>
+
+              <!-- Peso -->
+              <div>
+                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">Peso (kg)</label>
+                <input v-model="form.peso" type="number" step="0.001" placeholder="0.000" :disabled="form.esVariable"
+                  class="w-full h-11 rounded-xl border border-gray-300 dark:border-gray-700 bg-transparent px-4 text-sm text-gray-900 dark:text-white/90 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 disabled:bg-gray-50 dark:disabled:bg-gray-800/50" />
               </div>
             </div>
           </div>
@@ -173,6 +180,11 @@
                     <div class="w-full md:flex-1">
                       <label class="block text-xs text-gray-500 mb-1">Stock</label>
                       <input v-model="v.stock" type="number" placeholder="0" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm focus:border-brand-500 focus:outline-none" />
+                    </div>
+
+                    <div class="w-full md:flex-1">
+                      <label class="block text-xs text-gray-500 mb-1">Peso (kg)</label>
+                      <input v-model="v.peso" type="number" step="0.001" placeholder="0.000" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 text-sm focus:border-brand-500 focus:outline-none" />
                     </div>
 
                     <div class="w-full md:w-auto">
@@ -352,6 +364,7 @@ const form = reactive({
   precio: '',
   stock: '',
   envioEspecial: '',
+  peso: '',
   esVariable: false,
   esPublico: true,
   
@@ -409,11 +422,13 @@ onMounted(async () => {
       form.precio = data.precio || '';
       form.stock = data.stock || '';
       form.envioEspecial = data.envio_especial || '';
+      form.peso = data.peso || '';
       form.esVariable = data.es_variable;
       form.esPublico = data.es_publico;
       if (data.atributos) form.atributos = data.atributos;
       form.variaciones = data.variaciones.map(v => ({
         ...v,
+        peso: v.peso || '',
         color: v.color || '#000000',
         imagenPreview: v.imagen_url || null,  // Mostrar imagen existente
         imagen: null                           // null = sin nuevo archivo
@@ -503,6 +518,7 @@ const generarVariaciones = () => {
       valor,
       precio: '',
       stock: '',
+      peso: '',
       color: colorObj ? colorObj.colorHex : '#000000',
       imagen: null,
       imagenPreview: null
@@ -515,6 +531,7 @@ const addVariacion = () => {
     valor: '',
     precio: '',
     stock: '',
+    peso: '',
     color: '#000000',
     imagen: null,
     imagenPreview: null
@@ -669,6 +686,7 @@ const guardar = async () => {
     fd.append('preventa_fin',    form.flag === 'Preventa' ? form.preventaFin    : '');
     fd.append('precio',          form.esVariable ? '' : (form.precio || ''));
     fd.append('stock',          form.esVariable ? '0' : form.stock);
+    fd.append('peso',           form.esVariable ? '0' : (form.peso || '0'));
     if (form.envioEspecial !== '' && form.envioEspecial !== null && form.envioEspecial !== undefined) {
       fd.append('envio_especial', form.envioEspecial);
     } else {
@@ -685,6 +703,7 @@ const guardar = async () => {
         valor:      v.valor,
         precio:     v.precio,
         stock:      v.stock,
+        peso:       v.peso,
         color:      v.color,
         imagen_url: v.imagen instanceof File ? null : (v.imagen_url || null)
       }));

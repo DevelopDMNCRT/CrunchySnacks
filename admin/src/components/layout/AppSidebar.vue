@@ -275,6 +275,11 @@ const menuGroups = [
         name: "Reporte",
         path: "/reporte",
       },
+      {
+        icon: BoxIcon, // You can change the icon later
+        name: "Envío",
+        path: "/envio",
+      },
     ],
   },
 ];

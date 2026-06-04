@@ -97,9 +97,14 @@
 
           </form>
 
-          <div class="payment-brick-section mt-4">
+          <div class="payment-brick-section mt-4" v-show="cartState.shippingAvailable">
             <h3 style="margin-bottom: 20px;">Pago con Tarjeta</h3>
             <div id="paymentBrick_container"></div>
+          </div>
+          <div class="payment-brick-section mt-4" v-if="!cartState.shippingAvailable">
+            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 12px; padding: 20px; text-align: center; color: #991b1b; font-family: 'Nunito Sans', sans-serif;">
+              <strong>Envío no disponible.</strong> Selecciona una dirección válida para continuar con el pago.
+            </div>
           </div>
         </div>
 
@@ -160,11 +165,31 @@
         </div>
       </transition>
     </Teleport>
+
+    <!-- Shipping Alert Modal -->
+    <Teleport to="body">
+      <transition name="fade-modal">
+        <div v-if="showShippingAlert" class="map-modal-overlay" @click.self="showShippingAlert = false">
+          <div class="map-modal-content" style="max-width: 400px; text-align: center; padding: 30px;">
+            <div style="color: #e53e3e; margin-bottom: 20px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="margin: 0 auto;">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h3 style="font-family: 'Nunito', sans-serif; font-weight: 800; margin-bottom: 10px; color: #111;">Envío no disponible</h3>
+            <p style="font-family: 'Nunito Sans', sans-serif; color: var(--text-muted); margin-bottom: 24px;">
+              Lo sentimos, actualmente no contamos con envíos disponibles para {{ form.estado ? form.estado + ', ' : '' }}{{ form.pais }}.
+            </p>
+            <button @click="showShippingAlert = false" class="confirm-location-btn" style="background: #e53e3e; border: none; color: white;">Cerrar</button>
+          </div>
+        </div>
+      </transition>
+    </Teleport>
   </main>
 </template>
 
 <script setup>
-import { onMounted, ref, reactive, computed, nextTick } from 'vue'
+import { onMounted, ref, reactive, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { cartState, cartGetters, cartActions } from '../store/cart.js'
 import { useLocale } from '../composables/useLocale.js'
@@ -217,6 +242,60 @@ const currentStates = computed(() => statesData[form.pais] || [])
 const onPaisChange = () => {
   form.estado = ''
 }
+
+const reglasEnvio = ref([])
+const showShippingAlert = ref(false)
+
+const parseEstados = (estadosStr) => {
+  if (!estadosStr) return [];
+  try {
+    const arr = typeof estadosStr === 'string' && estadosStr.startsWith('[') ? JSON.parse(estadosStr) : estadosStr;
+    if (Array.isArray(arr)) return arr;
+    return [];
+  } catch(e) { return []; }
+};
+
+const evaluarEnvio = () => {
+  if (!form.pais) return;
+  
+  let reglaEncontrada = null;
+  
+  for (const regla of reglasEnvio.value) {
+    const paises = regla.pais.split(',').map(p => p.trim());
+    if (paises.includes(form.pais)) {
+      const estadosRegla = parseEstados(regla.estados);
+      if (estadosRegla.length === 0) {
+        reglaEncontrada = regla;
+      } else if (form.estado && estadosRegla.includes(form.estado)) {
+        reglaEncontrada = regla;
+        break;
+      }
+    }
+  }
+
+  if (reglaEncontrada) {
+    cartState.baseShippingCost = Number(reglaEncontrada.precio);
+    cartState.shippingAvailable = true;
+    showShippingAlert.value = false;
+  } else {
+    if (form.pais && form.estado) {
+       cartState.shippingAvailable = false;
+       showShippingAlert.value = true;
+    } else if (form.pais && !form.estado) {
+       const rulesForCountry = reglasEnvio.value.filter(r => r.pais.split(',').map(p=>p.trim()).includes(form.pais));
+       if (rulesForCountry.length === 0) {
+           cartState.shippingAvailable = false;
+           showShippingAlert.value = true;
+       } else {
+           cartState.shippingAvailable = false; // Waiting for state selection
+       }
+    }
+  }
+}
+
+watch(() => [form.pais, form.estado], () => {
+  evaluarEnvio();
+});
 
 // Map Modal Logic
 const isMapModalOpen = ref(false)
@@ -315,6 +394,16 @@ onMounted(async () => {
   if (cartState.items.length === 0) {
     router.push('/')
     return
+  }
+  
+  try {
+    const resReglas = await fetch('/api/reglas-envio');
+    if (resReglas.ok) {
+      reglasEnvio.value = await resReglas.json();
+      evaluarEnvio();
+    }
+  } catch (err) {
+    console.error("Error loading reglas", err);
   }
   
   try {
@@ -418,6 +507,10 @@ const initPaymentBrick = async (publicKey) => {
       onSubmit: (arg) => {
         const formData = arg.formData || arg;
         return new Promise((resolve, reject) => {
+          if (!cartState.shippingAvailable) {
+            alert("No hay envíos disponibles para esta ubicación.");
+            return reject(new Error("Envío no disponible"));
+          }
           // Validar formulario manualmente
           if (!checkoutFormRef.value.checkValidity()) {
             checkoutFormRef.value.reportValidity();

@@ -2,7 +2,9 @@ import { reactive, computed } from 'vue';
 
 export const cartState = reactive({
   items: [],
-  isOpen: false
+  isOpen: false,
+  baseShippingCost: 0,
+  shippingAvailable: false
 });
 
 export const cartGetters = {
@@ -11,11 +13,11 @@ export const cartGetters = {
   // Envío: 
   // 1. Si algún item tiene envío gratis (0), es gratis.
   // 2. Si no, si hay items con envío especial, cobramos el menor de los envíos especiales.
-  // 3. Si ninguno tiene envío especial, cobramos 150.
+  // 3. Si ninguno tiene envío especial, cobramos el baseShippingCost evaluado por país/estado.
   shippingCost: computed(() => {
-    if (cartState.items.length === 0) return 150;
+    if (cartState.items.length === 0) return cartState.baseShippingCost;
     
-    let cost = 150;
+    let cost = cartState.baseShippingCost;
     let hasSpecial = false;
 
     for (const item of cartState.items) {

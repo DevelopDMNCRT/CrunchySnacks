@@ -262,7 +262,7 @@ app.get('/api/products/:id', async (req, res) => {
 
 // POST create product
 app.post('/api/products', upload.any(), async (req, res) => {
-  const { nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, atributos, variaciones, tienda, flag, preventa_inicio, preventa_fin } = req.body;
+  const { nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, atributos, variaciones, tienda, flag, preventa_inicio, preventa_fin, peso } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
@@ -286,8 +286,8 @@ app.post('/api/products', upload.any(), async (req, res) => {
       .replace(/\s+/g, '-');
 
     const result = await client.query(
-      `INSERT INTO products (nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, imagen_url, galeria_urls, atributos, tienda, flag, preventa_inicio, preventa_fin)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,
+      `INSERT INTO products (nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, imagen_url, galeria_urls, atributos, tienda, flag, preventa_inicio, preventa_fin, peso)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING *`,
       [
         nombre, descripcion || null,
         precio ? parseFloat(precio) : null,
@@ -297,7 +297,8 @@ app.post('/api/products', upload.any(), async (req, res) => {
         productSlug, imagen_url, JSON.stringify(galeria_urls),
         atributos || null, tienda || 'General', flag || null,
         (flag === 'Preventa' && preventa_inicio) ? preventa_inicio : null,
-        (flag === 'Preventa' && preventa_fin)    ? preventa_fin    : null
+        (flag === 'Preventa' && preventa_fin)    ? preventa_fin    : null,
+        peso ? parseFloat(peso) : 0
       ]
     );
 
@@ -310,9 +311,9 @@ app.post('/api/products', upload.any(), async (req, res) => {
         // Use newly uploaded Cloudinary URL, or existing URL (not blobs)
         const varImg = varImgMap[i] || (v.imagen_url && !v.imagen_url.startsWith('blob:') ? v.imagen_url : null);
         await client.query(
-          `INSERT INTO product_variations (product_id, valor, precio, stock, color, imagen_url)
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [product.id, v.valor, v.precio ? parseFloat(v.precio) : null, v.stock ? parseInt(v.stock) : 0, v.color || null, varImg]
+          `INSERT INTO product_variations (product_id, valor, precio, stock, color, imagen_url, peso)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [product.id, v.valor, v.precio ? parseFloat(v.precio) : null, v.stock ? parseInt(v.stock) : 0, v.color || null, varImg, v.peso ? parseFloat(v.peso) : 0]
         );
       }
     }
@@ -331,7 +332,7 @@ app.post('/api/products', upload.any(), async (req, res) => {
 // PUT update product
 app.put('/api/products/:id', upload.any(), async (req, res) => {
   const { id } = req.params;
-  const { nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, atributos, variaciones, tienda, flag, preventa_inicio, preventa_fin } = req.body;
+  const { nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, atributos, variaciones, tienda, flag, preventa_inicio, preventa_fin, peso } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
@@ -364,7 +365,7 @@ app.put('/api/products/:id', upload.any(), async (req, res) => {
     if (newGaleria.length) galeria_urls = [...galeria_urls, ...newGaleria.map(f => f.path)];
 
     const result = await client.query(
-      `UPDATE products SET nombre=$1, descripcion=$2, precio=$3, stock=$4, envio_especial=$5, es_variable=$6, es_publico=$7, slug=$8, imagen_url=$9, galeria_urls=$10, atributos=$11, tienda=$13, flag=$14, preventa_inicio=$15, preventa_fin=$16
+      `UPDATE products SET nombre=$1, descripcion=$2, precio=$3, stock=$4, envio_especial=$5, es_variable=$6, es_publico=$7, slug=$8, imagen_url=$9, galeria_urls=$10, atributos=$11, tienda=$13, flag=$14, preventa_inicio=$15, preventa_fin=$16, peso=$17
        WHERE id=$12 RETURNING *`,
       [
         nombre, descripcion || null,
@@ -375,7 +376,8 @@ app.put('/api/products/:id', upload.any(), async (req, res) => {
         productSlug, imagen_url, JSON.stringify(galeria_urls),
         atributos || null, id, tienda || 'General', flag || null,
         (flag === 'Preventa' && preventa_inicio) ? preventa_inicio : null,
-        (flag === 'Preventa' && preventa_fin)    ? preventa_fin    : null
+        (flag === 'Preventa' && preventa_fin)    ? preventa_fin    : null,
+        peso ? parseFloat(peso) : 0
       ]
     );
 
@@ -388,9 +390,9 @@ app.put('/api/products/:id', upload.any(), async (req, res) => {
         const v = vars[i];
         const varImg = varImgMap[i] || (v.imagen_url && !v.imagen_url.startsWith('blob:') ? v.imagen_url : null);
         await client.query(
-          `INSERT INTO product_variations (product_id, valor, precio, stock, color, imagen_url)
-           VALUES ($1,$2,$3,$4,$5,$6)`,
-          [product.id, v.valor, v.precio ? parseFloat(v.precio) : null, v.stock ? parseInt(v.stock) : 0, v.color || null, varImg]
+          `INSERT INTO product_variations (product_id, valor, precio, stock, color, imagen_url, peso)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [product.id, v.valor, v.precio ? parseFloat(v.precio) : null, v.stock ? parseInt(v.stock) : 0, v.color || null, varImg, v.peso ? parseFloat(v.peso) : 0]
         );
       }
     }
@@ -601,6 +603,155 @@ app.put('/api/pedidos/:id/estado', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to update pedido estado' });
+  }
+});
+
+// --- Envia.com API Integration ---
+
+const getEnviaPayload = async (pedido) => {
+  let totalWeight = 0;
+  for (const item of (pedido.items || [])) {
+    const prodId = item.producto_id || item.id;
+    if (isNaN(parseInt(prodId, 10))) continue; // Evitar error de postgres si el ID es un string alfa
+    const pRes = await pool.query('SELECT peso FROM products WHERE id = $1', [parseInt(prodId, 10)]);
+    const pPeso = pRes.rows[0]?.peso ? parseFloat(pRes.rows[0].peso) : 1;
+    totalWeight += pPeso * item.cantidad;
+  }
+  if (totalWeight < 1) totalWeight = 1;
+
+  const map = {
+    'aguascalientes': 'AG', 'baja california': 'BC', 'baja california sur': 'BS',
+    'campeche': 'CM', 'chiapas': 'CS', 'chihuahua': 'CH', 'ciudad de mexico': 'CX', 'ciudad de méxico': 'CX', 'cdmx': 'CX',
+    'coahuila': 'CO', 'colima': 'CL', 'durango': 'DG', 'estado de mexico': 'EM', 'estado de méxico': 'EM',
+    'guanajuato': 'GT', 'guerrero': 'GR', 'hidalgo': 'HG', 'jalisco': 'JA', 'michoacan': 'MI', 'michoacán': 'MI',
+    'morelos': 'MO', 'nayarit': 'NA', 'nuevo leon': 'NL', 'nuevo león': 'NL', 'oaxaca': 'OA', 'puebla': 'PU',
+    'queretaro': 'QT', 'querétaro': 'QT', 'quintana roo': 'QR', 'san luis potosi': 'SL', 'san luis potosí': 'SL',
+    'sinaloa': 'SI', 'sonora': 'SO', 'tabasco': 'TB', 'tamaulipas': 'TM', 'tlaxcala': 'TL', 'veracruz': 'VE',
+    'yucatan': 'YU', 'yucatán': 'YU', 'zacatecas': 'ZA'
+  };
+  const stateCode = map[(pedido.estado_env || '').toLowerCase().trim()] || 'JA';
+
+  return {
+    origin: {
+      name: 'Amigo Merch', company: 'Amigo Merch', email: 'hola@amigomerch.mx', phone: '3312345678',
+      street: 'Bodega Principal', number: '1', district: 'Centro', city: 'Zapopan', state: 'JA', country: 'MX', postalCode: '45200', reference: ''
+    },
+    destination: {
+      name: pedido.nombre, company: '', email: pedido.correo || 'hola@amigomerch.mx', phone: pedido.telefono || '3300000000',
+      street: pedido.calle || 'Conocida', number: pedido.num_ext || 'SN', district: pedido.colonia || 'Centro', city: pedido.ciudad || 'Ciudad', state: stateCode, country: pedido.pais === 'Mexico' ? 'MX' : 'MX', postalCode: pedido.cp || '00000', reference: pedido.notas || ''
+    },
+    packages: [{
+      content: 'Ropa y Accesorios', amount: 1, type: 'box', weight: totalWeight, insurance: 0, declaredValue: parseFloat(pedido.total), weightUnit: 'KG', lengthUnit: 'CM', dimensions: { length: 30, width: 20, height: 10 }
+    }],
+    settings: { printFormat: 'PDF', printSize: 'STOCK_4X6' }
+  };
+};
+
+app.post('/api/pedidos/:id/cotizar-envio', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await pool.query('SELECT * FROM pedidos WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Pedido no encontrado' });
+    
+    const payload = await getEnviaPayload(rows[0]);
+    // Request basic carriers to quote
+    const carriers = ['fedex', 'dhl', 'estafeta', 'redpack'];
+    const rates = [];
+
+    for (const carrier of carriers) {
+      try {
+        const ratePayload = { ...payload, shipment: { carrier, type: 1 } };
+        const response = await fetch(`${process.env.ENVIA_API_URL}/ship/rate/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.ENVIA_API_KEY}` },
+          body: JSON.stringify(ratePayload)
+        });
+        const data = await response.json();
+        if (data.meta === 'rate' && data.data && data.data.length > 0) {
+          rates.push(...data.data);
+        }
+      } catch (e) { console.error(`Error rating ${carrier}:`, e); }
+    }
+
+    res.json({ rates });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to quote shipping' });
+  }
+});
+
+app.post('/api/pedidos/:id/generar-guia', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { carrier, service } = req.body;
+    
+    const { rows } = await pool.query('SELECT * FROM pedidos WHERE id = $1', [id]);
+    if (!rows.length) return res.status(404).json({ error: 'Pedido no encontrado' });
+    
+    if (rows[0].tracking_number) {
+      return res.status(400).json({ error: 'Este pedido ya tiene una guía generada' });
+    }
+
+    const payload = await getEnviaPayload(rows[0]);
+    payload.shipment = { carrier, service, type: 1 };
+
+    const response = await fetch(`${process.env.ENVIA_API_URL}/ship/generate/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.ENVIA_API_KEY}` },
+      body: JSON.stringify(payload)
+    });
+    const data = await response.json();
+
+    if (data.meta !== 'generate') {
+      return res.status(400).json({ error: 'Error al generar la guía con Envia.com', details: data.error || data });
+    }
+
+    const trackingNumber = data.data[0].trackingNumber;
+    const guiaUrl = data.data[0].label;
+
+    const result = await pool.query(
+      'UPDATE pedidos SET tracking_number = $1, guia_url = $2 WHERE id = $3 RETURNING *',
+      [trackingNumber, guiaUrl, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to generate label' });
+  }
+});
+
+app.post('/api/webhooks/envia', async (req, res) => {
+  try {
+    const payload = req.body;
+    console.log('Webhook Envia recibido:', JSON.stringify(payload, null, 2));
+    res.status(200).send('OK');
+
+    const data = payload.data || payload;
+    let trackingNumber = data.trackingNumber || data.tracking_number;
+    let status = data.status || data.state || data.status_description || '';
+    
+    if (trackingNumber && typeof trackingNumber === 'string') {
+      const { rows } = await pool.query('SELECT * FROM pedidos WHERE tracking_number = $1', [trackingNumber]);
+      if (rows.length > 0) {
+        const pedido = rows[0];
+        status = status.toString().toLowerCase();
+        
+        let nuevoEstado = null;
+        if (status.includes('deliver') || status.includes('entregad')) {
+          nuevoEstado = 'Completado';
+        } else if (status.includes('exception') || status.includes('return') || status.includes('cancel') || status.includes('devolución')) {
+          nuevoEstado = 'Fallido';
+        }
+
+        if (nuevoEstado && pedido.estado !== nuevoEstado) {
+          await pool.query('UPDATE pedidos SET estado = $1 WHERE id = $2', [nuevoEstado, pedido.id]);
+          console.log(`[Webhook] Pedido ${pedido.id} actualizado a ${nuevoEstado} por tracking ${trackingNumber}`);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error en webhook de envia:', err);
   }
 });
 
@@ -1122,6 +1273,277 @@ app.get('/api/pagos/verificar/:pedidoId', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Error al verificar pedido' });
+  }
+});
+
+// --- Configuracion ---
+
+app.get('/api/configuracion', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT precio_envio, envia_token, envia_modo FROM configuracion LIMIT 1');
+    if (result.rows.length === 0) return res.json({ precio_envio: 150, envia_token: '', envia_modo: 'sandbox' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener configuracion' });
+  }
+});
+
+app.put('/api/configuracion', async (req, res) => {
+  try {
+    const { precio_envio, envia_token, envia_modo } = req.body;
+    let result = await pool.query('UPDATE configuracion SET precio_envio = $1, envia_token = $2, envia_modo = $3 RETURNING *', [precio_envio, envia_token, envia_modo]);
+    if (result.rows.length === 0) {
+      result = await pool.query('INSERT INTO configuracion (precio_envio, envia_token, envia_modo) VALUES ($1, $2, $3) RETURNING *', [precio_envio, envia_token, envia_modo]);
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al guardar configuracion' });
+  }
+});
+
+// --- Reglas de Envío ---
+
+app.get('/api/reglas-envio', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM reglas_envio ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener reglas de envio' });
+  }
+});
+
+app.post('/api/reglas-envio', async (req, res) => {
+  try {
+    const { pais, estados, precio } = req.body;
+    const result = await pool.query(
+      'INSERT INTO reglas_envio (pais, estados, precio) VALUES ($1, $2, $3) RETURNING *',
+      [pais, estados ? JSON.stringify(estados) : null, precio]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al crear regla de envio' });
+  }
+});
+
+app.delete('/api/reglas-envio/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM reglas_envio WHERE id = $1', [id]);
+    res.json({ message: 'Regla eliminada' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al eliminar regla de envio' });
+  }
+});
+
+// --- Envia.com Guías ---
+
+app.post('/api/pedidos/:id/generar-guia', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pedidoRes = await pool.query('SELECT * FROM pedidos WHERE id = $1', [id]);
+    const pedido = pedidoRes.rows[0];
+    if (!pedido) return res.status(404).json({ error: 'Pedido no encontrado' });
+
+    // --- CALCULO DE PESO DINÁMICO ---
+    let totalWeight = 0;
+    try {
+      const items = typeof pedido.items === 'string' ? JSON.parse(pedido.items) : (pedido.items || []);
+      
+      for (const item of items) {
+        let itemWeight = 0;
+        
+        // Check variation weight first
+        if (item.variante && item.producto_id) {
+           const varRes = await pool.query('SELECT peso FROM product_variations WHERE product_id = $1 AND talla = $2', [item.producto_id, item.variante]);
+           if (varRes.rows.length > 0 && Number(varRes.rows[0].peso) > 0) {
+             itemWeight = Number(varRes.rows[0].peso);
+           }
+        }
+        
+        // If variation weight is 0 or not found, check product weight
+        if (itemWeight === 0 && item.producto_id) {
+           const prodRes = await pool.query('SELECT peso FROM products WHERE id = $1', [item.producto_id]);
+           if (prodRes.rows.length > 0 && Number(prodRes.rows[0].peso) > 0) {
+             itemWeight = Number(prodRes.rows[0].peso);
+           }
+        }
+        
+        totalWeight += itemWeight * Number(item.cantidad || 1);
+      }
+    } catch (e) {
+      console.error('Error calculando el peso de los items:', e);
+    }
+    
+    // Default to 1kg if weight calculation yields 0
+    if (totalWeight <= 0) totalWeight = 1;
+
+    const enviaKey = process.env.ENVIA_API_KEY;
+    const enviaUrl = process.env.ENVIA_API_URL || 'https://api-test.envia.com';
+    
+    if (!enviaKey) {
+      return res.status(400).json({ error: 'ENVIA_API_KEY no configurada en .env' });
+    }
+
+    const payload = {
+      origin: {
+        name: "Amigo Merch",
+        company: "Amigo Merch",
+        email: "contacto@amigomerch.com",
+        phone: "8100000000",
+        street: "Av. Principal",
+        number: "100",
+        district: "Centro",
+        city: "Monterrey",
+        state: "NL",
+        country: "MX",
+        postalCode: "64000"
+      },
+      destination: {
+        name: pedido.nombre || 'Cliente',
+        company: "",
+        email: pedido.correo || 'contacto@cliente.com',
+        phone: pedido.telefono || '0000000000',
+        street: pedido.calle || pedido.domicilio || 'Calle Conocida',
+        number: pedido.num_ext || "1",
+        district: pedido.colonia || 'Centro',
+        city: pedido.ciudad || 'Ciudad',
+        state: (pedido.estado_env && pedido.estado_env.substring(0,2).toUpperCase()) || 'XX',
+        country: "MX",
+        postalCode: pedido.cp || '00000'
+      },
+      packages: [
+        {
+          content: "Ropa y Accesorios",
+          amount: 1,
+          type: "box",
+          dimensions: { length: 20, width: 20, height: 10 },
+          weight: totalWeight,
+          insurance: 0,
+          declaredValue: Number(pedido.subtotal) || 0,
+          weightUnit: "KG",
+          lengthUnit: "CM"
+        }
+      ],
+      shipment: {
+        carrier: "fedex",
+        service: "express",
+        type: 1
+      },
+      settings: {
+        printFormat: "PDF",
+        printSize: "STOCK_4X6",
+        comments: "Pedido " + pedido.orden
+      }
+    };
+
+    const response = await fetch(`${enviaUrl}/ship/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${enviaKey}`
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    const data = await response.json();
+    if (!response.ok || data.meta !== 'generate') {
+      console.error('Envia Error:', data);
+      return res.status(400).json({ error: data.error?.message || 'Error al generar la guía en Envia', details: data });
+    }
+    
+    const tracking_number = data.data[0].trackingNumber;
+    const guia_url = data.data[0].trackUrl;
+    
+    await pool.query('UPDATE pedidos SET tracking_number = $1, guia_url = $2 WHERE id = $3', [tracking_number, guia_url, id]);
+    
+    res.json({ tracking_number, guia_url });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al generar la guía', details: err.message });
+  }
+});
+
+// --- Reporte PDF Stock ---
+
+app.get('/api/reportes/stock-pdf', async (req, res) => {
+  try {
+    const PDFDocument = require('pdfkit');
+    const doc = new PDFDocument({ margin: 50 });
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename=reporte-stock.pdf');
+    doc.pipe(res);
+    
+    doc.fontSize(20).text('Reporte de Stock - Amigo Merch', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(12).text(`Fecha: ${new Date().toLocaleDateString()}`);
+    doc.moveDown();
+    
+    const productsRes = await pool.query('SELECT * FROM products WHERE deleted_at IS NULL ORDER BY nombre');
+    const varsRes = await pool.query('SELECT * FROM product_variations');
+    
+    for (const prod of productsRes.rows) {
+      doc.fontSize(14).font('Helvetica-Bold').text(`${prod.nombre}`);
+      
+      if (prod.es_variable) {
+        const prodVars = varsRes.rows.filter(v => v.product_id === prod.id);
+        if (prodVars.length > 0) {
+          prodVars.forEach(v => {
+            doc.fontSize(12).font('Helvetica').text(`  - ${v.valor}: ${v.stock} piezas`, { indent: 20 });
+          });
+        } else {
+          doc.fontSize(12).font('Helvetica').text(`  - Sin variaciones: 0 piezas`, { indent: 20 });
+        }
+      } else {
+        doc.fontSize(12).font('Helvetica').text(`  Stock general: ${prod.stock} piezas`, { indent: 20 });
+      }
+      doc.moveDown(0.5);
+    }
+    
+    doc.end();
+  } catch (err) {
+    console.error(err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Error al generar PDF' });
+    }
+  }
+});
+
+app.get('/api/reportes/inventario', async (req, res) => {
+  try {
+    const productsRes = await pool.query('SELECT id, nombre, es_variable, stock FROM products WHERE deleted_at IS NULL ORDER BY nombre');
+    const varsRes = await pool.query('SELECT product_id, valor, color, stock FROM product_variations');
+    
+    let inventario = [];
+    let totalPiezas = 0;
+    
+    for (const prod of productsRes.rows) {
+      if (prod.es_variable) {
+        const prodVars = varsRes.rows.filter(v => v.product_id === prod.id);
+        if (prodVars.length > 0) {
+          prodVars.forEach(v => {
+            const varName = v.color ? `${v.valor} / ${v.color}` : v.valor;
+            inventario.push({ producto: prod.nombre, variacion: varName, unidades: v.stock || 0 });
+            totalPiezas += (v.stock || 0);
+          });
+        } else {
+          inventario.push({ producto: prod.nombre, variacion: 'N/A', unidades: 0 });
+        }
+      } else {
+        inventario.push({ producto: prod.nombre, variacion: 'N/A', unidades: prod.stock || 0 });
+        totalPiezas += (prod.stock || 0);
+      }
+    }
+    
+    res.json({ totalPiezas, inventario });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Error al obtener inventario' });
   }
 });
 
