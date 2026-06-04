@@ -721,6 +721,10 @@ app.post('/api/pedidos/:id/generar-guia', async (req, res) => {
   }
 });
 
+app.get('/api/webhooks/envia', (req, res) => {
+  res.status(200).send('Webhook Envia GET OK');
+});
+
 app.post('/api/webhooks/envia', async (req, res) => {
   try {
     const payload = req.body;
@@ -1479,30 +1483,80 @@ app.get('/api/reportes/stock-pdf', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=reporte-stock.pdf');
     doc.pipe(res);
     
-    doc.fontSize(20).text('Reporte de Stock - Amigo Merch', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(12).text(`Fecha: ${new Date().toLocaleDateString()}`);
-    doc.moveDown();
+    const productsRes = await pool.query('SELECT id, nombre, es_variable, stock FROM products WHERE deleted_at IS NULL ORDER BY nombre');
+    const varsRes = await pool.query('SELECT product_id, valor, color, stock FROM product_variations');
     
-    const productsRes = await pool.query('SELECT * FROM products WHERE deleted_at IS NULL ORDER BY nombre');
-    const varsRes = await pool.query('SELECT * FROM product_variations');
+    let inventario = [];
+    let totalPiezas = 0;
     
     for (const prod of productsRes.rows) {
-      doc.fontSize(14).font('Helvetica-Bold').text(`${prod.nombre}`);
-      
       if (prod.es_variable) {
         const prodVars = varsRes.rows.filter(v => v.product_id === prod.id);
         if (prodVars.length > 0) {
           prodVars.forEach(v => {
-            doc.fontSize(12).font('Helvetica').text(`  - ${v.valor}: ${v.stock} piezas`, { indent: 20 });
+            const varName = v.color ? `${v.valor} / ${v.color}` : v.valor;
+            inventario.push({ producto: prod.nombre, variacion: varName, unidades: v.stock || 0 });
+            totalPiezas += (v.stock || 0);
           });
         } else {
-          doc.fontSize(12).font('Helvetica').text(`  - Sin variaciones: 0 piezas`, { indent: 20 });
+          inventario.push({ producto: prod.nombre, variacion: 'N/A', unidades: 0 });
         }
       } else {
-        doc.fontSize(12).font('Helvetica').text(`  Stock general: ${prod.stock} piezas`, { indent: 20 });
+        inventario.push({ producto: prod.nombre, variacion: 'N/A', unidades: prod.stock || 0 });
+        totalPiezas += (prod.stock || 0);
       }
-      doc.moveDown(0.5);
+    }
+    
+    doc.fontSize(20).font('Helvetica').fillColor('#111827').text('Reporte de Inventario');
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Total de piezas disponibles: ${totalPiezas}`);
+    doc.moveDown(1.5);
+    
+    const tableTop = doc.y;
+    const col1X = 50;
+    const col2X = 260;
+    const col3X = 400;
+    const rowHeight = 25;
+    let y = tableTop;
+
+    const drawHeader = (startY) => {
+      doc.rect(50, startY, 512, rowHeight).fill('#237650');
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#FFFFFF');
+      doc.text('Producto', col1X + 10, startY + 8);
+      doc.text('Variación (Talla/Color)', col2X + 10, startY + 8);
+      doc.text('Unidades', col3X, startY + 8, { width: 150, align: 'right' });
+      return startY + rowHeight;
+    };
+
+    y = drawHeader(y);
+
+    for (let i = 0; i < inventario.length; i++) {
+      const item = inventario[i];
+      
+      if (y > 700) {
+        doc.addPage();
+        y = 50;
+        y = drawHeader(y);
+      }
+      
+      if (i % 2 !== 0) {
+        doc.rect(50, y, 512, rowHeight).fill('#F9FAFB');
+      } else {
+        doc.rect(50, y, 512, rowHeight).fill('#FFFFFF');
+      }
+      
+      doc.font('Helvetica').fontSize(10).fillColor('#6B7280');
+      
+      let pName = item.producto;
+      if (pName.length > 40) pName = pName.substring(0, 37) + '...';
+      let vName = item.variacion;
+      if (vName.length > 25) vName = vName.substring(0, 22) + '...';
+      
+      doc.text(pName, col1X + 10, y + 8, { lineBreak: false });
+      doc.text(vName, col2X + 10, y + 8, { lineBreak: false });
+      doc.text(item.unidades.toString(), col3X, y + 8, { width: 150, align: 'right', lineBreak: false });
+      
+      y += rowHeight;
     }
     
     doc.end();
