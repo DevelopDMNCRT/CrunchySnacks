@@ -8,7 +8,10 @@ const { upload } = require('./cloudinary');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
 const { MercadoPagoConfig, Preference, Payment } = require('mercadopago');
+const fs = require('fs');
+const csv = require('csv-parser');
 
+const localUpload = multer({ dest: 'uploads/' });
 // ── Mercado Pago ───────────────────────────────────────────────────────────
 const mpClient = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN,
@@ -222,21 +225,30 @@ app.delete('/api/users/:id', async (req, res) => {
 // --- Products CRUD ---
 
 // GET all products
-app.get('/api/products', async (_req, res) => {
+app.get('/api/products', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   try {
-    const result = await pool.query(`
+    const { all } = req.query;
+    let query = `
       SELECT p.*,
         (SELECT MIN(pv.precio) FROM product_variations pv WHERE pv.product_id = p.id) AS min_v_price,
         (SELECT COUNT(*) FROM product_variations pv WHERE pv.product_id = p.id) AS variaciones_count
       FROM products p
       WHERE p.deleted_at IS NULL
-      ORDER BY p.created_at DESC
-    `);
+    `;
     
-    // Fallback: If main price is null (common in variable products), use the min variation price
+    if (all !== 'true') {
+      query += ` AND p.es_publico = true`;
+    }
+    
+    query += ` ORDER BY p.created_at DESC`;
+
+    const result = await pool.query(query);
+    
+    // Fallback: If main price is null or 0 (common in variable products), use the min variation price
     const products = result.rows.map(p => ({
       ...p,
-      precio: p.precio !== null && p.precio !== undefined ? p.precio : p.min_v_price
+      precio: (p.precio && parseFloat(p.precio) > 0) ? p.precio : p.min_v_price
     }));
     
     res.json(products);
@@ -421,6 +433,116 @@ app.delete('/api/products/:id', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Failed to delete product' });
   }
+});
+// Import CSV products
+app.post('/api/products/migrar-csv', localUpload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  const results = [];
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', async () => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        const baseProducts = results.filter(r => r.Type === 'simple' || r.Type === 'variable');
+        const variations = results.filter(r => r.Type === 'variation');
+
+        const insertedProductsMap = {};
+
+        for (const row of baseProducts) {
+          const nombre = row.Name || 'Sin Nombre';
+          const descripcion = row['Short description'] || row.Description || null;
+          const precio = row['Regular price'] || row['Sale price'] || 0;
+          const stock = parseInt(row.Stock) || 0;
+          const peso = parseFloat(row['Weight (kg)']) || 0;
+          const es_publico = row.Published === '1';
+          const es_variable = row.Type === 'variable';
+          const tienda = row.Categories || 'General';
+          
+          let imagen_url = null;
+          let galeria_urls = [];
+          if (row.Images) {
+            const urls = row.Images.split(',').map(s => s.trim()).filter(s => s);
+            if (urls.length > 0) {
+              imagen_url = urls[0];
+              galeria_urls = urls.slice(1);
+            }
+          }
+
+          let atributos = null;
+          if (es_variable && row['Attribute 1 name'] && row['Attribute 1 value(s)']) {
+            atributos = JSON.stringify([{
+              nombre: row['Attribute 1 name'],
+              opciones: row['Attribute 1 value(s)'].split(',').map(s => s.trim())
+            }]);
+          }
+
+          const productSlug = nombre.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
+
+          const query = `
+            INSERT INTO products (nombre, descripcion, precio, stock, es_variable, es_publico, slug, imagen_url, galeria_urls, atributos, tienda, peso)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            ON CONFLICT (slug) DO UPDATE SET
+              nombre = EXCLUDED.nombre,
+              descripcion = EXCLUDED.descripcion,
+              precio = EXCLUDED.precio,
+              stock = EXCLUDED.stock,
+              es_variable = EXCLUDED.es_variable,
+              es_publico = EXCLUDED.es_publico,
+              imagen_url = EXCLUDED.imagen_url,
+              galeria_urls = EXCLUDED.galeria_urls,
+              atributos = EXCLUDED.atributos,
+              tienda = EXCLUDED.tienda,
+              peso = EXCLUDED.peso,
+              deleted_at = NULL
+            RETURNING id`;
+          const values = [nombre, descripcion, parseFloat(precio) || 0, stock, es_variable, es_publico, productSlug, imagen_url, JSON.stringify(galeria_urls), atributos, tienda, peso];
+          
+          const result = await client.query(query, values);
+          insertedProductsMap[nombre.trim()] = result.rows[0].id;
+        }
+
+        for (const row of variations) {
+          const varName = row.Name || '';
+          let baseName = null;
+          let baseId = null;
+          
+          for (const name of Object.keys(insertedProductsMap)) {
+            if (varName.startsWith(name)) {
+              baseName = name;
+              baseId = insertedProductsMap[name];
+              break;
+            }
+          }
+
+          if (baseId) {
+            const valor = row['Attribute 1 value(s)'] || varName.replace(`${baseName} - `, '').trim();
+            const precio = row['Regular price'] || row['Sale price'] || null;
+            const stock = parseInt(row.Stock) || 0;
+            const peso = parseFloat(row['Weight (kg)']) || 0;
+            
+            await client.query(
+              `INSERT INTO product_variations (product_id, valor, precio, stock, peso) VALUES ($1, $2, $3, $4, $5)`,
+              [baseId, valor, precio ? parseFloat(precio) : null, stock, peso]
+            );
+          }
+        }
+
+        await client.query('COMMIT');
+        try { fs.unlinkSync(req.file.path); } catch(e){} 
+        res.json({ message: 'Migración completada', count: baseProducts.length + variations.length });
+      } catch (error) {
+        await client.query('ROLLBACK');
+        try { fs.unlinkSync(req.file.path); } catch(e){}
+        console.error('Error migrando CSV:', error);
+        res.status(500).json({ error: 'Error procesando CSV', details: error.message });
+      } finally {
+        client.release();
+      }
+    });
 });
 
 // Upload image only
@@ -899,24 +1021,90 @@ app.post('/api/boletines/:id/enviar', async (req, res) => {
 });
 
 
-// --- Clientes (derivados de pedidos) ---
+// --- Clientes (derivados de pedidos + historicos) ---
+
+// Import CSV customers
+app.post('/api/clientes/migrar-csv', localUpload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+  const results = [];
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', async () => {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        
+        for (const row of results) {
+          const email = row.Email ? row.Email.trim() : null;
+          if (!email) continue;
+          
+          const nombre = row.Name || row['\uFEFFName'] || row.Username || 'Sin Nombre';
+          const pedidos_hist = parseInt(row.Orders) || 0;
+          const gastado_hist = parseFloat(row['Total Spend']) || 0;
+          const ciudad = row.City || null;
+          const estado = row.Region || null;
+          const pais = row['Country / Region'] || null;
+          const cp = row['Postal Code'] || null;
+
+          const query = `
+            INSERT INTO clientes (correo, nombre, ciudad, estado, pais, codigo_postal, total_pedidos_historico, total_gastado_historico)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            ON CONFLICT (correo) DO UPDATE SET
+              nombre = COALESCE(EXCLUDED.nombre, clientes.nombre),
+              ciudad = EXCLUDED.ciudad,
+              estado = EXCLUDED.estado,
+              pais = EXCLUDED.pais,
+              codigo_postal = EXCLUDED.codigo_postal,
+              total_pedidos_historico = EXCLUDED.total_pedidos_historico,
+              total_gastado_historico = EXCLUDED.total_gastado_historico
+          `;
+          await client.query(query, [email, nombre, ciudad, estado, pais, cp, pedidos_hist, gastado_hist]);
+        }
+
+        await client.query('COMMIT');
+        try { fs.unlinkSync(req.file.path); } catch(e){} 
+        res.json({ message: 'Migración de clientes completada', count: results.length });
+      } catch (error) {
+        await client.query('ROLLBACK');
+        try { fs.unlinkSync(req.file.path); } catch(e){}
+        console.error('Error migrando CSV de clientes:', error);
+        res.status(500).json({ error: 'Error procesando CSV', details: error.message });
+      } finally {
+        client.release();
+      }
+    });
+});
 
 
-// GET all clientes – agrupados por correo desde la tabla pedidos
+// GET all clientes – agrupados por correo desde la tabla pedidos + historico de clientes
 app.get('/api/clientes', async (_req, res) => {
   try {
     const result = await pool.query(`
+      WITH clientes_agrupados AS (
+          SELECT
+              correo,
+              MAX(nombre) AS nombre,
+              MAX(telefono) AS telefono,
+              COUNT(*)::int AS pedidos_app,
+              SUM(total)::numeric AS gastado_app,
+              MIN(created_at) AS primera_compra,
+              MAX(created_at) AS ultima_compra
+          FROM pedidos
+          GROUP BY correo
+      )
       SELECT
-        correo,
-        MAX(nombre)                            AS nombre,
-        MAX(telefono)                          AS telefono,
-        COUNT(*)::int                          AS total_pedidos,
-        SUM(total)::numeric                    AS total_gastado,
-        MIN(created_at)                        AS primera_compra,
-        MAX(created_at)                        AS ultima_compra
-      FROM pedidos
-      GROUP BY correo
-      ORDER BY ultima_compra DESC
+          COALESCE(c.correo, p.correo) AS correo,
+          COALESCE(p.nombre, c.nombre) AS nombre,
+          COALESCE(p.telefono, c.telefono) AS telefono,
+          (COALESCE(c.total_pedidos_historico, 0) + COALESCE(p.pedidos_app, 0)) AS total_pedidos,
+          (COALESCE(c.total_gastado_historico, 0) + COALESCE(p.gastado_app, 0)) AS total_gastado,
+          COALESCE(p.primera_compra, c.created_at) AS primera_compra,
+          COALESCE(p.ultima_compra, c.ultima_actividad) AS ultima_compra
+      FROM clientes c
+      FULL OUTER JOIN clientes_agrupados p ON LOWER(c.correo) = LOWER(p.correo)
+      ORDER BY ultima_compra DESC NULLS LAST
     `);
     res.json(result.rows);
   } catch (err) {

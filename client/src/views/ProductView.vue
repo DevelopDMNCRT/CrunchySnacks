@@ -228,7 +228,9 @@ const getAvailableOptions = (groupNombre) => {
   const idx = groups.findIndex(g => g.nombre === groupNombre);
   const group = groups[idx];
   if (!group) return [];
-  const allOpts = (group.opciones || '').split(',').map(o => o.trim()).filter(Boolean);
+  const allOpts = Array.isArray(group.opciones) 
+    ? group.opciones 
+    : (group.opciones || '').split(',').map(o => o.trim()).filter(Boolean);
   const prevGroups = groups.slice(0, idx);
   const relevant = parsedVariations.value.filter(v =>
     prevGroups.every(pg => !selectedAttrs.value[pg.nombre] || v.attrs[pg.nombre] === selectedAttrs.value[pg.nombre])
