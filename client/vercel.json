@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://amigo-merchserver.vercel.app/api/$1"
+      "destination": "https://TU_SERVIDOR_DE_CRUNCHYSNACKS.vercel.app/api/$1"
     },
     {
       "source": "/(.*)",
