@@ -26,7 +26,7 @@ window.fetch = async (...args) => {
       if (config.headers instanceof Headers) {
         config.headers.set('Authorization', `Bearer ${token}`)
       } else {
-        config.headers['Authorization'] = `Bearer ${token}`
+        (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
       }
       args[1] = config
     }
@@ -40,10 +40,10 @@ axios.interceptors.request.use((config) => {
   if (config.url && config.url.startsWith('/api') && !config.url.startsWith('/api/auth/login')) {
     const token = localStorage.getItem('amigo_admin_token')
     if (token) {
-      if (config.headers && typeof config.headers.set === 'function') {
-        config.headers.set('Authorization', `Bearer ${token}`)
-      } else {
-        config.headers['Authorization'] = `Bearer ${token}`
+      if (config.headers && typeof (config.headers as any).set === 'function') {
+        (config.headers as any).set('Authorization', `Bearer ${token}`)
+      } else if (config.headers) {
+        (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
       }
     }
   }
