@@ -74,6 +74,27 @@
         class="items-center justify-between w-full gap-4 px-5 py-4 shadow-theme-md lg:flex lg:justify-end lg:px-0 lg:shadow-none"
       >
         <div class="flex items-center gap-2 2xsm:gap-3">
+          
+          <!-- Toggle Mantenimiento -->
+          <div class="flex items-center gap-2 mr-2 border-r border-gray-200 dark:border-gray-800 pr-4">
+            <span class="text-xs font-semibold text-gray-600 dark:text-gray-400">Mantenimiento</span>
+            <button 
+              @click="toggleMantenimiento"
+              :disabled="savingMantenimiento"
+              class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-colors duration-200 ease-in-out disabled:opacity-50"
+              :class="mantenimiento ? 'bg-warning-500' : 'bg-gray-200 dark:bg-gray-700'"
+              role="switch"
+              :aria-checked="mantenimiento"
+            >
+              <span class="sr-only">Modo Mantenimiento</span>
+              <span 
+                aria-hidden="true" 
+                class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                :class="mantenimiento ? 'translate-x-2' : '-translate-x-2'"
+              />
+            </button>
+          </div>
+
           <ThemeToggler />
           <NotificationMenu />
         </div>
@@ -84,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useSidebar } from '@/composables/useSidebar'
 import ThemeToggler from '../common/ThemeToggler.vue'
 import HeaderLogo from './header/HeaderLogo.vue'
@@ -113,5 +134,40 @@ const isApplicationMenuOpen = ref(false)
 
 const toggleApplicationMenu = () => {
   isApplicationMenuOpen.value = !isApplicationMenuOpen.value
+}
+
+// Mantenimiento logic
+const mantenimiento = ref(false)
+const savingMantenimiento = ref(false)
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/settings/mantenimiento')
+    const data = await res.json()
+    mantenimiento.value = data.mantenimiento
+  } catch(e) {
+    console.error('Error fetching mantenimiento:', e)
+  }
+})
+
+const toggleMantenimiento = async () => {
+  if (savingMantenimiento.value) return
+  savingMantenimiento.value = true
+  const newValue = !mantenimiento.value
+  mantenimiento.value = newValue
+  try {
+    const res = await fetch('/api/settings/mantenimiento', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mantenimiento: newValue })
+    })
+    const data = await res.json()
+    mantenimiento.value = data.mantenimiento
+  } catch(e) {
+    console.error('Error updating mantenimiento:', e)
+    mantenimiento.value = !newValue // revert on error
+  } finally {
+    savingMantenimiento.value = false
+  }
 }
 </script>

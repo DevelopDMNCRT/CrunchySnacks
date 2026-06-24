@@ -1828,6 +1828,55 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Error interno del servidor', details: err.message || err.toString() });
 });
 
+// --- Settings / Configuración ---
+const initSettingsTable = async () => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS settings (
+        key VARCHAR(50) PRIMARY KEY,
+        value TEXT
+      )
+    `);
+    // Asegurar que exista la key mantenimiento
+    await pool.query(`
+      INSERT INTO settings (key, value) 
+      VALUES ('mantenimiento', 'false')
+      ON CONFLICT (key) DO NOTHING
+    `);
+    console.log('Settings table initialized');
+  } catch (err) {
+    console.error('Error initializing settings table:', err);
+  }
+};
+initSettingsTable();
+
+// GET mantenimiento status (public endpoint)
+app.get('/api/settings/mantenimiento', async (_req, res) => {
+  try {
+    const result = await pool.query("SELECT value FROM settings WHERE key = 'mantenimiento'");
+    const isMaintenance = result.rows.length > 0 && result.rows[0].value === 'true';
+    res.json({ mantenimiento: isMaintenance });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  }
+});
+
+// PUT mantenimiento status
+app.put('/api/settings/mantenimiento', async (req, res) => {
+  try {
+    const { mantenimiento } = req.body;
+    await pool.query(
+      "UPDATE settings SET value = $1 WHERE key = 'mantenimiento'",
+      [mantenimiento === true ? 'true' : 'false']
+    );
+    res.json({ mantenimiento: mantenimiento === true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to update settings' });
+  }
+});
+
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
