@@ -23,13 +23,6 @@
       <!-- Card -->
       <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
 
-        <!-- Header con búsqueda -->
-        <div class="px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <p class="text-sm text-gray-500 dark:text-gray-400">
-            Haz clic en <strong class="font-medium text-gray-700 dark:text-gray-300">Ver</strong> para consultar el historial de órdenes de un cliente.
-          </p>
-        </div>
-
         <!-- Loading / Error -->
         <div v-if="loading" class="px-6 py-12 text-center">
           <p class="text-sm text-gray-400 dark:text-gray-500">Cargando clientes...</p>
@@ -39,7 +32,7 @@
         </div>
 
         <!-- Table -->
-        <div v-else class="border-t border-gray-100 dark:border-gray-800">
+        <div v-else>
           <ClientesTable :clientes="paginados" />
         </div>
 

@@ -117,6 +117,19 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+// --- Auth Middleware ---
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) return res.status(401).json({ error: 'Acceso denegado. Se requiere token.' });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ error: 'Token inválido o expirado.' });
+    req.user = user;
+    next();
+  });
+};
+
 // --- Auth Routes ---
 
 app.post('/api/auth/login', async (req, res) => {
@@ -143,20 +156,25 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/auth/me', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ error: 'No autorizado' });
-  const token = authHeader.split(' ')[1];
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const result = await pool.query('SELECT id, nombre, correo, rol FROM users WHERE id = $1', [decoded.id]);
+    const result = await pool.query('SELECT id, nombre, correo, rol FROM users WHERE id = $1', [req.user.id]);
     if (result.rows.length === 0) return res.status(404).json({ error: 'Usuario no encontrado' });
     const u = result.rows[0];
     res.json({ admin: { id: u.id, username: u.nombre, email: u.correo, rol: u.rol } });
   } catch {
-    res.status(401).json({ error: 'Token inválido o expirado' });
+    res.status(500).json({ error: 'Error del servidor' });
   }
 });
+
+// --- Protected Prefixes ---
+app.use('/api/users', authenticateToken);
+app.use('/api/clientes', authenticateToken);
+app.use('/api/reportes', authenticateToken);
+app.use('/api/configuracion', authenticateToken);
+app.use('/api/reglas-envio', authenticateToken);
+app.use('/api/settings', authenticateToken);
+app.use('/api/suscriptores', authenticateToken);
 
 // --- Users CRUD ---
 
@@ -273,7 +291,7 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 // POST create product
-app.post('/api/products', upload.any(), async (req, res) => {
+app.post('/api/products', authenticateToken, upload.any(), async (req, res) => {
   const { nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, atributos, variaciones, tienda, flag, preventa_inicio, preventa_fin, peso } = req.body;
 
   if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
@@ -342,7 +360,7 @@ app.post('/api/products', upload.any(), async (req, res) => {
 });
 
 // PUT update product
-app.put('/api/products/:id', upload.any(), async (req, res) => {
+app.put('/api/products/:id', authenticateToken, upload.any(), async (req, res) => {
   const { id } = req.params;
   const { nombre, descripcion, precio, stock, envio_especial, es_variable, es_publico, slug, atributos, variaciones, tienda, flag, preventa_inicio, preventa_fin, peso } = req.body;
 
@@ -424,7 +442,7 @@ app.put('/api/products/:id', upload.any(), async (req, res) => {
 });
 
 // DELETE product (Soft Delete)
-app.delete('/api/products/:id', async (req, res) => {
+app.delete('/api/products/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
     await pool.query('UPDATE products SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
@@ -435,7 +453,7 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 // Import CSV products
-app.post('/api/products/migrar-csv', localUpload.single('file'), async (req, res) => {
+app.post('/api/products/migrar-csv', authenticateToken, localUpload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
   const results = [];
@@ -563,90 +581,90 @@ app.get('/db-test', async (_req, res) => {
   }
 });
 
-// --- Tiendas CRUD ---
+// --- Categorías CRUD ---
 
-// GET all tiendas
+// GET all categorias
 app.get('/api/tiendas', async (_req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM tiendas WHERE deleted_at IS NULL ORDER BY nombre ASC');
+    const result = await pool.query('SELECT * FROM categorias WHERE deleted_at IS NULL ORDER BY nombre ASC');
     res.json(result.rows);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch tiendas' });
+    res.status(500).json({ error: 'Failed to fetch categorias' });
   }
 });
 
-// GET single tienda
+// GET single categoria
 app.get('/api/tiendas/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query('SELECT * FROM tiendas WHERE id = $1 AND deleted_at IS NULL', [id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: 'Tienda no encontrada' });
+    const result = await pool.query('SELECT * FROM categorias WHERE id = $1 AND deleted_at IS NULL', [id]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Categoría no encontrada' });
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch tienda' });
+    res.status(500).json({ error: 'Failed to fetch categoria' });
   }
 });
 
-// POST create tienda
-app.post('/api/tiendas', upload.fields([{ name: 'imagen', maxCount: 1 }, { name: 'header', maxCount: 1 }]), async (req, res) => {
+// POST create categoria
+app.post('/api/tiendas', authenticateToken, upload.fields([{ name: 'imagen', maxCount: 1 }, { name: 'header', maxCount: 1 }]), async (req, res) => {
   try {
     const { nombre, publico } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
     const imagen_url = req.files?.imagen?.[0]?.path || null;
     const header_url = req.files?.header?.[0]?.path || null;
     const result = await pool.query(
-      'INSERT INTO tiendas (nombre, publico, imagen_url, header_url) VALUES ($1, $2, $3, $4) RETURNING *',
+      'INSERT INTO categorias (nombre, publico, imagen_url, header_url) VALUES ($1, $2, $3, $4) RETURNING *',
       [nombre, publico === 'true', imagen_url, header_url]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to create tienda', details: err.message });
+    res.status(500).json({ error: 'Failed to create categoria', details: err.message });
   }
 });
 
-// PUT update tienda
-app.put('/api/tiendas/:id', upload.fields([{ name: 'imagen', maxCount: 1 }, { name: 'header', maxCount: 1 }]), async (req, res) => {
+// PUT update categoria
+app.put('/api/tiendas/:id', authenticateToken, upload.fields([{ name: 'imagen', maxCount: 1 }, { name: 'header', maxCount: 1 }]), async (req, res) => {
   try {
     const { id } = req.params;
     const { nombre, publico } = req.body;
     if (!nombre) return res.status(400).json({ error: 'El nombre es requerido' });
 
-    const existing = await pool.query('SELECT imagen_url, header_url FROM tiendas WHERE id = $1 AND deleted_at IS NULL', [id]);
-    if (existing.rows.length === 0) return res.status(404).json({ error: 'Tienda no encontrada' });
+    const existing = await pool.query('SELECT imagen_url, header_url FROM categorias WHERE id = $1 AND deleted_at IS NULL', [id]);
+    if (existing.rows.length === 0) return res.status(404).json({ error: 'Categoría no encontrada' });
 
     const imagen_url = req.files?.imagen?.[0]?.path ?? existing.rows[0].imagen_url;
     const header_url = req.files?.header?.[0]?.path ?? existing.rows[0].header_url;
 
     const result = await pool.query(
-      'UPDATE tiendas SET nombre = $1, publico = $2, imagen_url = $3, header_url = $4 WHERE id = $5 RETURNING *',
+      'UPDATE categorias SET nombre = $1, publico = $2, imagen_url = $3, header_url = $4 WHERE id = $5 RETURNING *',
       [nombre, publico === 'true', imagen_url, header_url, id]
     );
     res.json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to update tienda', details: err.message });
+    res.status(500).json({ error: 'Failed to update categoria', details: err.message });
   }
 });
 
-// DELETE tienda
-app.delete('/api/tiendas/:id', async (req, res) => {
+// DELETE categoria
+app.delete('/api/tiendas/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
-    await pool.query('UPDATE tiendas SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
-    res.json({ message: 'Tienda eliminada' });
+    await pool.query('UPDATE categorias SET deleted_at = CURRENT_TIMESTAMP WHERE id = $1', [id]);
+    res.json({ message: 'Categoría eliminada' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to delete tienda' });
+    res.status(500).json({ error: 'Failed to delete categoria' });
   }
 });
 
 // --- Pedidos CRUD ---
 
 // GET all pedidos
-app.get('/api/pedidos', async (_req, res) => {
+app.get('/api/pedidos', authenticateToken, async (_req, res) => {
   try {
     const result = await pool.query('SELECT * FROM pedidos ORDER BY created_at DESC');
     res.json(result.rows);
@@ -673,7 +691,7 @@ app.get('/api/pedidos/orden/:orden', async (req, res) => {
 });
 
 // GET single pedido
-app.get('/api/pedidos/:id', async (req, res) => {
+app.get('/api/pedidos/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query('SELECT * FROM pedidos WHERE id = $1', [id]);
@@ -706,7 +724,7 @@ app.post('/api/pedidos', async (req, res) => {
 });
 
 // PUT update pedido estado (+ dispara correo según el estado)
-app.put('/api/pedidos/:id/estado', async (req, res) => {
+app.put('/api/pedidos/:id/estado', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
@@ -805,7 +823,7 @@ app.post('/api/pedidos/:id/cotizar-envio', async (req, res) => {
   }
 });
 
-app.post('/api/pedidos/:id/generar-guia', async (req, res) => {
+app.post('/api/pedidos/:id/generar-guia', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { carrier, service } = req.body;
@@ -884,141 +902,6 @@ app.post('/api/webhooks/envia', async (req, res) => {
   }
 });
 
-// --- Boletines CRUD ---
-
-// GET all boletines
-app.get('/api/boletines', async (_req, res) => {
-  try {
-    const r = await pool.query('SELECT id, asunto, estado, created_at, sent_at FROM boletines ORDER BY created_at DESC');
-    res.json(r.rows);
-  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch boletines' }); }
-});
-
-// GET single boletin
-app.get('/api/boletines/:id', async (req, res) => {
-  try {
-    const r = await pool.query('SELECT * FROM boletines WHERE id = $1', [req.params.id]);
-    if (!r.rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json(r.rows[0]);
-  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch boletin' }); }
-});
-
-// POST create boletin (borrador)
-app.post('/api/boletines', async (req, res) => {
-  const { asunto = '', html = '' } = req.body;
-  try {
-    const r = await pool.query(
-      'INSERT INTO boletines (asunto, html, estado) VALUES ($1, $2, $3) RETURNING *',
-      [asunto.trim(), html, 'Borrador']
-    );
-    res.status(201).json(r.rows[0]);
-  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create boletin' }); }
-});
-
-// PATCH update boletin (asunto, html, estado)
-app.patch('/api/boletines/:id', async (req, res) => {
-  const { asunto, html, estado } = req.body;
-  const VALID_ESTADOS = ['Borrador', 'Programado', 'Enviado'];
-  if (estado && !VALID_ESTADOS.includes(estado)) return res.status(400).json({ error: 'Estado inválido' });
-  try {
-    const r = await pool.query(
-      `UPDATE boletines SET
-        asunto     = COALESCE($1, asunto),
-        html       = COALESCE($2, html),
-        estado     = COALESCE($3, estado)
-       WHERE id = $4 RETURNING *`,
-      [asunto ?? null, html ?? null, estado ?? null, req.params.id]
-    );
-    if (!r.rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json(r.rows[0]);
-  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to update boletin' }); }
-});
-
-// DELETE boletin
-app.delete('/api/boletines/:id', async (req, res) => {
-  try {
-    const r = await pool.query('DELETE FROM boletines WHERE id = $1 RETURNING id', [req.params.id]);
-    if (!r.rows.length) return res.status(404).json({ error: 'No encontrado' });
-    res.json({ deleted: r.rows[0].id });
-  } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to delete boletin' }); }
-});
-
-// POST enviar boletin a todos los suscriptores
-app.post('/api/boletines/:id/enviar', async (req, res) => {
-  try {
-    // 1. Obtener el boletín
-    const bRes = await pool.query('SELECT * FROM boletines WHERE id = $1', [req.params.id]);
-    if (!bRes.rows.length) return res.status(404).json({ error: 'Boletín no encontrado' });
-    const boletin = bRes.rows[0];
-
-    if (boletin.estado === 'Enviado') {
-      return res.status(400).json({ error: 'Este boletín ya fue enviado anteriormente.' });
-    }
-
-    // 2. Obtener suscriptores filtrados por destinatarios seleccionados
-    const sRes = await pool.query('SELECT nombre, correo FROM suscriptores ORDER BY created_at ASC');
-    let suscriptores = sRes.rows;
-
-    // Si el cliente envió una lista de destinatarios, filtramos
-    const { destinatarios } = req.body;
-    if (Array.isArray(destinatarios) && destinatarios.length > 0) {
-      const setDest = new Set(destinatarios.map(d => d.toLowerCase()));
-      suscriptores = suscriptores.filter(s => setDest.has(s.correo.toLowerCase()));
-    }
-
-    if (suscriptores.length === 0) {
-      return res.status(400).json({ error: 'No hay destinatarios seleccionados o ninguno coincide con suscriptores registrados.' });
-    }
-
-    // 3. Enviar correos (en paralelo con Promise.allSettled para no fallar si uno falla)
-    let enviados = 0;
-    let fallidos = 0;
-
-    if (process.env.SMTP_USER) {
-      const results = await Promise.allSettled(
-        suscriptores.map(s =>
-          mailer.sendMail({
-            from:    `"Amigo Merch" <${process.env.SMTP_USER}>`,
-            to:      s.correo,
-            subject: boletin.asunto,
-            html: `
-              <div style="font-family:sans-serif;max-width:600px;margin:0 auto;">
-                ${boletin.html}
-                <hr style="border:none;border-top:1px solid #eee;margin:32px 0;">
-                <p style="color:#aaa;font-size:11px;text-align:center;">
-                  Hola ${s.nombre}, recibiste este correo porque estás suscrito al newsletter de Amigo Merch.<br>
-                  <a href="#" style="color:#aaa;">Cancelar suscripción</a>
-                </p>
-              </div>
-            `,
-          })
-        )
-      );
-      enviados = results.filter(r => r.status === 'fulfilled').length;
-      fallidos = results.filter(r => r.status === 'rejected').length;
-    } else {
-      console.log(`[EMAIL SKIPPED] No SMTP_USER. Would send "${boletin.asunto}" to ${suscriptores.length} suscriptores.`);
-      enviados = suscriptores.length; // simular éxito en dev
-    }
-
-    // 4. Actualizar estado del boletín a Enviado
-    await pool.query(
-      "UPDATE boletines SET estado = 'Enviado', sent_at = NOW() WHERE id = $1",
-      [req.params.id]
-    );
-
-    res.json({
-      ok:        true,
-      enviados,
-      fallidos,
-      total:     suscriptores.length,
-      emailReal: !!process.env.SMTP_USER,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Error al enviar el boletín.' });
-  }
-});
 
 
 // --- Clientes (derivados de pedidos + historicos) ---
@@ -1188,74 +1071,7 @@ app.delete('/api/suscriptores/:id', async (req, res) => {
   }
 });
 
-// --- Estadísticas ---
-app.get('/api/estadisticas/live', async (_req, res) => {
-  try {
-    // 1. Pedidos Nuevos
-    const pnRes = await pool.query("SELECT COUNT(*) FROM pedidos WHERE estado = 'Nuevo'");
-    const pedidosNuevos = parseInt(pnRes.rows[0].count, 10);
 
-    // 2. Ingresos del día
-    // 'CURRENT_DATE' usa la zona horaria del servidor
-    const indRes = await pool.query("SELECT SUM(total) FROM pedidos WHERE DATE(created_at) = CURRENT_DATE AND estado NOT IN ('Cancelado', 'Fallido')");
-    const ingresosHoy = parseFloat(indRes.rows[0].sum || 0);
-
-    // 3. Best Seller (Producto más vendido activo)
-    const bsRes = await pool.query(`
-      SELECT p.id, p.nombre, p.imagen_principal, p.precio, SUM((i->>'cantidad')::int) as vendidos
-      FROM pedidos ped
-      CROSS JOIN json_array_elements(ped.items::json) as i
-      JOIN productos p ON (i->>'id')::int = p.id
-      WHERE p.activo = true AND ped.estado NOT IN ('Cancelado', 'Fallido')
-      GROUP BY p.id, p.nombre, p.imagen_principal, p.precio
-      ORDER BY vendidos DESC
-      LIMIT 1
-    `);
-    const bestSeller = bsRes.rows.length ? bsRes.rows[0] : null;
-
-    res.json({
-      pedidosNuevos,
-      ingresosHoy,
-      bestSeller
-    });
-  } catch (err) {
-    console.error('Error fetching estadisticas:', err);
-    res.status(500).json({ error: 'Failed to fetch estadisticas' });
-  }
-});
-
-// Ventas por mes (Cardiograma)
-app.get('/api/estadisticas/ventas-mes', async (req, res) => {
-  try {
-    const today = new Date();
-    const year = parseInt(req.query.anio) || today.getFullYear();
-    const month = parseInt(req.query.mes) || (today.getMonth() + 1);
-
-    const result = await pool.query(`
-      SELECT 
-        EXTRACT(DAY FROM created_at) AS dia,
-        SUM(total) AS total_dia
-      FROM pedidos
-      WHERE 
-        EXTRACT(YEAR FROM created_at) = $1
-        AND EXTRACT(MONTH FROM created_at) = $2
-        AND estado NOT IN ('Cancelado', 'Fallido')
-      GROUP BY dia
-      ORDER BY dia ASC
-    `, [year, month]);
-
-    // Format output as array of { dia, total }
-    const datosDia = result.rows.map(r => ({
-      dia: parseInt(r.dia, 10),
-      total: parseFloat(r.total_dia)
-    }));
-
-    res.json({ anio: year, mes: month, datos: datosDia });
-  } catch (err) {
-    console.error('Error fetching ventas-mes:', err);
-    res.status(500).json({ error: 'Failed to fetch ventas-mes' });
-  }
-});
 
 // --- Reporte de Ventas Mensuales ---
 // GET /api/reportes/ventas?anio=2025&tienda_id=1&mes=Enero
@@ -1286,7 +1102,7 @@ app.get('/api/reportes/ventas', async (req, res) => {
     // Filter by tienda using EXISTS subquery
     // NOTE: items JSON uses 'producto_id' (not 'id') for the real product ID
     if (tienda_id && tienda_id !== 'todas') {
-      const tiendaRes = await pool.query('SELECT nombre FROM tiendas WHERE id = $1', [tienda_id]);
+      const tiendaRes = await pool.query('SELECT nombre FROM categorias WHERE id = $1', [tienda_id]);
       if (tiendaRes.rows.length) {
         query += ` AND EXISTS (
           SELECT 1 FROM products WHERE id = (item->>'producto_id')::int AND tienda = $${paramIdx}
@@ -1564,7 +1380,7 @@ app.delete('/api/reglas-envio/:id', async (req, res) => {
 
 // --- Envia.com Guías ---
 
-app.post('/api/pedidos/:id/generar-guia', async (req, res) => {
+app.post('/api/pedidos/:id/generar-guia', authenticateToken, async (req, res) => {
   const { id } = req.params;
   try {
     const pedidoRes = await pool.query('SELECT * FROM pedidos WHERE id = $1', [id]);

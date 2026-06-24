@@ -8,11 +8,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'Estadisticas',
-      component: () => import('../views/Estadisticas.vue'),
-      meta: {
-        title: 'Estadísticas',
-      },
+      redirect: '/pedidos'
     },
     {
       path: '/usuarios',
@@ -67,7 +63,7 @@ const router = createRouter({
       name: 'Tiendas',
       component: () => import('../views/Tiendas.vue'),
       meta: {
-        title: 'Tiendas',
+        title: 'Categorías',
       },
     },
     {
@@ -86,24 +82,7 @@ const router = createRouter({
         title: 'Configuración de Envío',
       },
     },
-    {
-      path: '/news',
-      name: 'News',
-      component: () => import('../views/News.vue'),
-      meta: { title: 'Newsletter' },
-    },
-    {
-      path: '/news/nueva',
-      name: 'NewsNueva',
-      component: () => import('../views/NewsEditor.vue'),
-      meta: { title: 'Nueva Newsletter' },
-    },
-    {
-      path: '/news/:id',
-      name: 'NewsEditar',
-      component: () => import('../views/NewsEditor.vue'),
-      meta: { title: 'Editar Newsletter' },
-    },
+
     {
       path: '/clientes',
       name: 'Clientes',
@@ -116,12 +95,7 @@ const router = createRouter({
       component: () => import('../views/ClienteDetalle.vue'),
       meta: { title: 'Detalle de Cliente' },
     },
-    {
-      path: '/suscriptores',
-      name: 'Suscriptores',
-      component: () => import('../views/Suscriptores.vue'),
-      meta: { title: 'Suscriptores' },
-    },
+
     {
       path: '/tickets',
       name: 'Tickets',
@@ -174,7 +148,7 @@ export default router
 const PUBLIC_ROUTES = ['/signin', '/signup', '/error-404']
 
 router.beforeEach((to, _from, next) => {
-  document.title = `${to.meta.title} | Amigo Merch Admin`
+  document.title = `${to.meta.title} | CrunchySnacks Admin`
   // Login guard disabled
   next()
 })

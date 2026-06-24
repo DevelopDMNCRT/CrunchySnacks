@@ -1,18 +1,19 @@
 <template>
-  <div class="min-h-screen flex">
+  <div class="min-h-screen flex bg-white dark:bg-gray-950">
 
-    <!-- ── Left panel – form ───────────────────────────────────────────────── -->
-    <div class="flex flex-col flex-1 items-center justify-center px-6 py-12 bg-white dark:bg-gray-950">
-      <div class="w-full max-w-sm">
+    <!-- ── Left panel – form ─────────────────────────────────────────────── -->
+    <div class="flex flex-col flex-1 items-center justify-center px-6 py-12 relative overflow-hidden">
+
+      <div class="relative w-full max-w-sm z-10">
 
         <!-- Logo -->
         <div class="flex justify-center mb-10">
-          <img src="/images/logo/logo.png" alt="Amigo Merch" class="h-10 w-auto" />
+          <img src="/images/logo/logo.png" alt="CrunchySnacks" class="h-16 w-auto" />
         </div>
 
         <!-- Heading -->
         <div class="mb-8 text-center">
-          <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Panel de Administración</h1>
+          <h1 class="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Panel de Administración</h1>
           <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Ingresa tus credenciales para continuar</p>
         </div>
 
@@ -30,10 +31,10 @@
         </transition>
 
         <!-- Form -->
-        <form @submit.prevent="handleSubmit" class="space-y-5">
+        <form @submit.prevent="handleSubmit" class="space-y-4">
           <!-- Username / Email -->
           <div>
-            <label for="username" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="username" class="block mb-1.5 text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
               Usuario o correo
             </label>
             <input
@@ -41,15 +42,15 @@
               type="text"
               id="username"
               autocomplete="username"
-              placeholder="admin@amigomerch.mx"
+              placeholder="admin@crunchysnacks.mx"
               :disabled="loading"
-              class="w-full h-11 rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+              class="w-full h-12 rounded-xl border border-gray-300 bg-white px-4 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-[#fb6514] focus:outline-none focus:ring-2 focus:ring-[#fb6514]/20 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-600"
             />
           </div>
 
           <!-- Password -->
           <div>
-            <label for="password" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label for="password" class="block mb-1.5 text-xs font-semibold uppercase tracking-widest text-gray-500 dark:text-gray-400">
               Contraseña
             </label>
             <div class="relative">
@@ -60,20 +61,18 @@
                 autocomplete="current-password"
                 placeholder="••••••••"
                 :disabled="loading"
-                class="w-full h-11 rounded-xl border border-gray-300 bg-white pl-4 pr-11 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 transition focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-60 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+                class="w-full h-12 rounded-xl border border-gray-300 bg-white pl-4 pr-12 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-[#fb6514] focus:outline-none focus:ring-2 focus:ring-[#fb6514]/20 disabled:opacity-50 dark:border-gray-800 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-600"
               />
               <button
                 type="button"
                 @click="showPassword = !showPassword"
-                class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                class="absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 tabindex="-1"
               >
-                <!-- Eye open -->
-                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
                 </svg>
-                <!-- Eye closed -->
-                <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg v-else xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
                 </svg>
               </button>
@@ -84,10 +83,12 @@
           <button
             type="submit"
             :disabled="loading || !username || !password"
-            class="relative w-full h-11 rounded-xl bg-brand-500 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:cursor-not-allowed disabled:opacity-60"
+            class="group relative w-full h-12 rounded-xl text-sm font-black text-white shadow-lg transition-all duration-200 overflow-hidden disabled:cursor-not-allowed disabled:opacity-40 mt-2"
+            style="background: linear-gradient(135deg, #fb6514 0%, #e8520f 100%);"
           >
-            <span v-if="!loading">Iniciar sesión</span>
-            <span v-else class="flex items-center justify-center gap-2">
+            <span class="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-200 rounded-xl"></span>
+            <span v-if="!loading" class="relative">Iniciar sesión →</span>
+            <span v-else class="relative flex items-center justify-center gap-2">
               <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
@@ -99,44 +100,43 @@
 
         <!-- Footer note -->
         <p class="mt-8 text-center text-xs text-gray-400 dark:text-gray-600">
-          Acceso restringido · Amigo Merch © 2026
+          Acceso restringido · CrunchySnacks © 2026
         </p>
       </div>
     </div>
 
-    <!-- ── Right panel – brand visual ─────────────────────────────────────── -->
-    <div
-      class="hidden lg:flex flex-col items-center justify-center w-1/2 relative overflow-hidden"
-      style="background-color: #237650;"
-    >
-      <!-- Decorative circles -->
-      <div class="absolute -top-24 -right-24 w-96 h-96 rounded-full opacity-10" style="background-color: #F6B200;"></div>
-      <div class="absolute -bottom-32 -left-32 w-[500px] h-[500px] rounded-full opacity-10" style="background-color: #F6B200;"></div>
-      <div class="absolute top-1/3 right-1/4 w-32 h-32 rounded-full opacity-5" style="background-color: #F6B200;"></div>
+    <!-- ── Right panel – brand visual ──────────────────────────────────────── -->
+    <div class="hidden lg:flex flex-col items-center justify-center w-1/2 relative overflow-hidden" style="background: #fb6514;">
+
+      <!-- Decorative shapes -->
+      <div class="absolute -top-20 -right-20 w-80 h-80 rounded-full" style="background: rgba(255,255,255,0.08);"></div>
+      <div class="absolute -bottom-28 -left-28 w-[480px] h-[480px] rounded-full" style="background: rgba(0,0,0,0.12);"></div>
+      <div class="absolute top-1/4 left-1/4 w-40 h-40 rounded-full" style="background: rgba(255,255,255,0.05);"></div>
+      <div class="absolute bottom-1/4 right-1/4 w-20 h-20 rounded-full" style="background: rgba(255,255,255,0.07);"></div>
 
       <!-- Content -->
       <div class="relative z-10 flex flex-col items-center text-center px-12 max-w-md">
-        <img src="/images/logo/logo.png" alt="Amigo Merch" class="h-14 w-auto mb-10 brightness-0 invert" />
-        <h2 class="text-3xl font-extrabold text-white leading-tight mb-4">
-          Gestiona tu merch<br/>en un solo lugar.
+
+        <h2 class="text-4xl font-black text-white leading-tight mb-4 tracking-tight">
+          El sabor que<br/>impulsa tu negocio.
         </h2>
         <p class="text-white/70 text-base leading-relaxed">
-          Administra tiendas, productos, pedidos y clientes de todos tus artistas desde este panel.
+          Gestiona productos, pedidos y categorías de CrunchySnacks desde un solo panel de control.
         </p>
 
-        <!-- Stat pills -->
-        <div class="mt-10 flex gap-4">
-          <div class="rounded-2xl px-5 py-3 text-center" style="background: rgba(255,255,255,0.1);">
-            <p class="text-2xl font-bold text-white">18+</p>
-            <p class="text-xs text-white/60 mt-0.5">Artistas</p>
+        <!-- Feature pills -->
+        <div class="mt-10 flex flex-wrap justify-center gap-3">
+          <div class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white" style="background: rgba(255,255,255,0.15);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Inventario en tiempo real
           </div>
-          <div class="rounded-2xl px-5 py-3 text-center" style="background: rgba(255,255,255,0.1);">
-            <p class="text-2xl font-bold text-white">100%</p>
-            <p class="text-xs text-white/60 mt-0.5">Oficial</p>
+          <div class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white" style="background: rgba(255,255,255,0.15);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Pedidos & envíos
           </div>
-          <div class="rounded-2xl px-5 py-3 text-center" style="background: rgba(246,178,0,0.2);">
-            <p class="text-2xl font-bold" style="color: #F6B200;">MXN</p>
-            <p class="text-xs text-white/60 mt-0.5">Moneda base</p>
+          <div class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white" style="background: rgba(255,255,255,0.15);">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            Clientes & reportes
           </div>
         </div>
       </div>
@@ -153,16 +153,16 @@ import { useAuth } from '@/composables/useAuth'
 const router = useRouter()
 const { login } = useAuth()
 
-const username = ref('')
-const password = ref('')
+const username     = ref('')
+const password     = ref('')
 const showPassword = ref(false)
-const loading = ref(false)
-const errorMsg = ref('')
+const loading      = ref(false)
+const errorMsg     = ref('')
 
 async function handleSubmit() {
   if (!username.value || !password.value) return
   errorMsg.value = ''
-  loading.value = true
+  loading.value  = true
   try {
     await login(username.value, password.value)
     router.push('/')
@@ -176,5 +176,5 @@ async function handleSubmit() {
 
 <style scoped>
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-from, .fade-leave-to       { opacity: 0; }
 </style>

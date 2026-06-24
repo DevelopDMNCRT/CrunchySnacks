@@ -16,10 +16,7 @@
 
       <!-- Card -->
       <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div class="px-6 py-5">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Gestiona los usuarios registrados en la plataforma.</p>
-        </div>
-      <div class="border-t border-gray-100 dark:border-gray-800">
+      <div>
           <UsersTable
             :usuarios="usuarios"
             @editar="onEditar"

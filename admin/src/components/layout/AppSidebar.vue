@@ -219,6 +219,7 @@ import {
   BoxIcon,
   ListIcon,
   HomeIcon,
+  GridIcon,
   MailIcon,
   SupportIcon,
   ChevronDownIcon,
@@ -235,11 +236,7 @@ const menuGroups = [
   {
     title: "Administrador",
     items: [
-      {
-        icon: PieChartIcon,
-        name: "Estadísticas",
-        path: "/",
-      },
+
       {
         icon: UserGroupIcon,
         name: "Usuarios",
@@ -250,11 +247,7 @@ const menuGroups = [
         name: "Clientes",
         path: "/clientes",
       },
-      {
-        icon: BellIcon,
-        name: "Suscriptores",
-        path: "/suscriptores",
-      },
+
       {
         icon: BoxIcon,
         name: "Productos",
@@ -266,8 +259,8 @@ const menuGroups = [
         path: "/pedidos",
       },
       {
-        icon: HomeIcon,
-        name: "Tiendas",
+        icon: GridIcon,
+        name: "Categorías",
         path: "/tiendas",
       },
       {

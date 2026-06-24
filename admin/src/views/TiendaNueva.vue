@@ -11,7 +11,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         </router-link>
         <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">
-          {{ isEditing ? 'Editar Tienda' : 'Nueva Tienda' }}
+          {{ isEditing ? 'Editar Categoría' : 'Nueva Categoría' }}
         </h1>
       </div>
 
@@ -26,7 +26,7 @@
               <!-- Foto de la tienda -->
               <div class="col-span-12">
                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                  Foto de la tienda
+                  Foto de la categoría
                 </label>
                 <div
                   class="relative flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed px-5 py-12 text-center cursor-pointer transition-colors"
@@ -61,7 +61,7 @@
               <!-- Header de la tienda -->
               <div class="col-span-12">
                 <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
-                  Header de la tienda
+                  Header de la categoría
                 </label>
                 <div
                   class="relative flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed px-5 py-10 text-center cursor-pointer transition-colors"
@@ -101,7 +101,7 @@
                 <input
                   v-model="form.nombre"
                   type="text"
-                  placeholder="Nombre de la tienda"
+                  placeholder="Nombre de la categoría"
                   required
                   class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
                 />
@@ -148,7 +148,7 @@
               :disabled="guardando"
               class="rounded-lg bg-brand-500 px-5 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition-colors disabled:opacity-60"
             >
-              {{ guardando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Crear Tienda') }}
+              {{ guardando ? 'Guardando...' : (isEditing ? 'Guardar Cambios' : 'Crear Categoría') }}
             </button>
           </div>
 

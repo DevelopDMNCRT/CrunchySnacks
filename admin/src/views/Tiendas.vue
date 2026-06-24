@@ -3,7 +3,7 @@
     <div class="space-y-5 sm:space-y-6">
       <!-- Page Header -->
       <div class="flex items-center justify-between">
-        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">Tiendas</h1>
+        <h1 class="text-xl font-semibold text-gray-800 dark:text-white/90">Categorías</h1>
         <router-link
           to="/tiendas/nueva"
           class="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition-colors"
@@ -14,13 +14,8 @@
       </div>
 
       <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <!-- Card Header -->
-        <div class="px-6 py-5">
-          <p class="text-sm text-gray-500 dark:text-gray-400">Gestiona las tiendas registradas en la plataforma.</p>
-        </div>
-
         <!-- Table -->
-        <div class="border-t border-gray-100 dark:border-gray-800">
+        <div>
           <div class="max-w-full overflow-x-auto custom-scrollbar">
             <table class="min-w-full">
               <thead>
