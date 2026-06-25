@@ -147,39 +147,38 @@ app.post('/api/contacto', async (req, res) => {
       <head>
         <meta charset="utf-8">
         <style>
-          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 40px 20px; color: #374151; }
-          .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-          .header { background-color: #EF7215; padding: 30px 20px; text-align: center; color: #ffffff; }
-          .header h1 { margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
-          .content { padding: 40px 30px; }
-          .field { margin-bottom: 24px; }
-          .label { font-size: 13px; text-transform: uppercase; color: #6b7280; font-weight: bold; margin-bottom: 8px; letter-spacing: 0.5px; }
-          .value { font-size: 16px; background-color: #f3f4f6; padding: 16px; border-radius: 8px; line-height: 1.5; color: #111827; }
-          .message-box { background-color: #fff7ed; border-left: 4px solid #EF7215; padding: 16px; border-radius: 4px 8px 8px 4px; font-size: 16px; line-height: 1.6; color: #111827; }
-          .footer { text-align: center; padding: 20px; font-size: 12px; color: #9ca3af; background-color: #f9fafb; border-top: 1px solid #e5e7eb; }
+          body { font-family: 'Georgia', serif; background-color: #f3f4f6; margin: 0; padding: 40px 20px; color: #333333; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 40px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border-top: 8px solid #EF7215; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 1px solid #e5e7eb; padding-bottom: 20px; }
+          .header img { max-width: 180px; height: auto; }
+          .content { font-size: 16px; line-height: 1.6; }
+          .greeting { margin-bottom: 20px; font-weight: bold; }
+          .message-body { background-color: #fcfaf8; padding: 20px; border-left: 4px solid #EF7215; margin: 20px 0; font-style: italic; color: #4b5563; }
+          .signature { margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 14px; color: #6b7280; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <h1>SOPORTE CRUNCHY SNACKS</h1>
+            <img src="https://raw.githubusercontent.com/DevelopDMNCRT/CrunchySnacks/main/client/public/logo.png" alt="Crunchy Snacks">
           </div>
           <div class="content">
-            <div class="field">
-              <div class="label">Nombre del Cliente</div>
-              <div class="value">${name}</div>
+            <div class="greeting">Hola Equipo,</div>
+            <p>Tienen un nuevo mensaje de contacto enviado desde la página web principal.</p>
+            
+            <p><strong>De:</strong> ${name} <br>
+            <strong>Correo:</strong> <a href="mailto:${email}" style="color: #EF7215; text-decoration: none;">${email}</a></p>
+            
+            <p><strong>Mensaje del cliente:</strong></p>
+            <div class="message-body">
+              ${message.replace(/\n/g, '<br>')}
             </div>
-            <div class="field">
-              <div class="label">Correo Electrónico</div>
-              <div class="value"><a href="mailto:${email}" style="color: #EF7215; text-decoration: none; font-weight: bold;">${email}</a></div>
-            </div>
-            <div class="field">
-              <div class="label">Mensaje</div>
-              <div class="message-box">${message.replace(/\n/g, '<br>')}</div>
-            </div>
+            
+            <p>Para responder a este cliente, simplemente puedes responder a este correo o dar clic en su dirección de e-mail.</p>
           </div>
-          <div class="footer">
-            Este mensaje fue enviado desde el formulario de contacto de la página web de Crunchy Snacks.
+          <div class="signature">
+            Saludos,<br>
+            <strong>El sistema web de Crunchy Snacks</strong>
           </div>
         </div>
       </body>
