@@ -137,11 +137,12 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
                   <router-link to="/tiendas" class="megamenu-btn">{{ t('nav.allStores') }}</router-link>
                 </div>
                 <div class="megamenu-lists">
-                  <ul class="sub-menu">
-                    <li class="menu-item" v-for="store in stores" :key="store.id">
-                      <router-link :to="`/tienda/${encode(store.nombre)}`">{{ store.nombre }}</router-link>
-                    </li>
-                  </ul>
+                  <div class="megamenu-grid">
+                    <router-link :to="`/tienda/${encode(store.nombre)}`" class="megamenu-card" v-for="store in stores" :key="store.id">
+                      <img :src="store.imagen_url || '/images/artist1.png'" :alt="store.nombre" class="megamenu-card-img" loading="lazy">
+                      <span class="megamenu-card-title">{{ store.nombre }}</span>
+                    </router-link>
+                  </div>
                 </div>
               </div>
             </div>
@@ -645,6 +646,51 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
 .sub-menu li a:hover {
   color: var(--primary-color);
   transform: translateX(4px);
+}
+
+.megamenu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 20px;
+  width: 100%;
+}
+
+.megamenu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border-color);
+}
+
+.megamenu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 12px rgba(239, 114, 21, 0.15);
+  border-color: var(--primary-color);
+}
+
+.megamenu-card-img {
+  width: 100%;
+  height: 90px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.megamenu-card-title {
+  padding: 10px 5px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-align: center;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 
