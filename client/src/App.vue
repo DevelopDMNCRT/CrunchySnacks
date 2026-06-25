@@ -39,8 +39,10 @@ onUnmounted(() => {
     <template v-else>
       <Preloader />
       <SiteHeader />
-      <router-view :key="$route.fullPath" />
-      <SiteFooter />
+      <div class="master-scroll-container" style="height: calc(100vh - 64px); overflow-y: auto; overflow-x: hidden; width: 100%; -webkit-overflow-scrolling: touch;">
+        <router-view :key="$route.fullPath" />
+        <SiteFooter />
+      </div>
     </template>
   </template>
 </template>

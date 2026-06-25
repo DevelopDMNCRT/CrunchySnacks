@@ -1,9 +1,17 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useLocale } from '../composables/useLocale.js'
 import { formatPrice } from '../store/locale.js'
 
 const { t, tTag } = useLocale()
+
+// Carousel Images
+const heroImages = [
+  '/frascos_optimizada_web.jpg',
+  '/ChatGPT-Image-18-jun-2025-01_55_37-p.m.png'
+]
+const currentHeroImage = ref(0)
+let heroInterval = null
 
 const encode = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '')
@@ -46,6 +54,10 @@ async function submitNewsletter() {
 }
 
 onMounted(async () => {
+  heroInterval = setInterval(() => {
+    currentHeroImage.value = (currentHeroImage.value + 1) % heroImages.length
+  }, 5000)
+
   try {
     const resStores = await fetch('/api/tiendas')
     const dataStores = await resStores.json()
@@ -62,13 +74,23 @@ onMounted(async () => {
     console.error('Error fetching data:', err)
   }
 })
+
+onUnmounted(() => {
+  if (heroInterval) clearInterval(heroInterval)
+})
 </script>
 
 <template>
   <main class="home-view">
     <section class="hero bg-primary">
-      <img src="/images/shape-1.png" class="hero-shape hero-shape-right" alt="" aria-hidden="true">
-      <img src="/images/shape-3.png" class="hero-shape hero-shape-left" alt="" aria-hidden="true">
+      <div 
+        v-for="(img, index) in heroImages" 
+        :key="index"
+        class="hero-slide"
+        :class="{ 'active': index === currentHeroImage }"
+        :style="{ backgroundImage: `url(${img})` }"
+      ></div>
+      <div class="hero-overlay"></div>
       <div class="hero-content">
         <h1 class="hero-title">{{ t('home.heroTitle') }}</h1>
       </div>
@@ -88,7 +110,6 @@ onMounted(async () => {
 
     <!-- Catálogo de Tiendas -->
     <section class="catalog-section">
-      <img src="/images/shape-1.png" class="floating-shape shape-left" alt="" aria-hidden="true">
       <div class="container catalog-container">
         <h2 class="section-title">{{ t('home.ourStores') }}</h2>
         <div class="artist-grid">
@@ -102,69 +123,8 @@ onMounted(async () => {
       </div>
     </section>
 
-    <!-- Newsletter -->
-    <section class="newsletter-section">
-      <div class="newsletter-container">
-        <h2 class="newsletter-title">{{ t('home.newsletterTitle') }}</h2>
-        <p class="newsletter-sub">{{ t('home.newsletterDesc') }}</p>
-        <form class="newsletter-form" @submit.prevent="submitNewsletter">
-          <!-- Name input -->
-          <div class="nl-fields">
-            <div class="input-wrapper">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                <circle cx="12" cy="7" r="4"/>
-              </svg>
-              <input
-                id="nl-nombre"
-                v-model="nlNombre"
-                type="text"
-                class="newsletter-input"
-                :placeholder="t('home.newsletterNamePlaceholder')"
-                :aria-label="t('home.newsletterNameLabel')"
-                required
-              />
-            </div>
-            <!-- Email input -->
-            <div class="input-wrapper">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="input-icon">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                <polyline points="22,6 12,13 2,6"></polyline>
-              </svg>
-              <input
-                id="nl-correo"
-                v-model="nlCorreo"
-                type="email"
-                class="newsletter-input"
-                :placeholder="t('home.newsletterPlaceholder')"
-                :aria-label="t('home.newsletterPlaceholder')"
-                required
-              />
-            </div>
-          </div>
-          <button type="submit" class="newsletter-btn" :disabled="nlLoading">
-            <span v-if="nlLoading">...</span>
-            <span v-else>{{ t('home.newsletterBtn') }}</span>
-          </button>
-        </form>
-        <!-- Feedback message -->
-        <transition name="nl-fade">
-          <p v-if="nlMessage" :class="['newsletter-msg', nlMessage.type === 'success' ? 'nl-success' : 'nl-error']">
-            {{ nlMessage.text }}
-          </p>
-        </transition>
-        <p class="newsletter-disclaimer">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-          </svg>
-          {{ t('home.newsletterDisclaimer') }}
-        </p>
-      </div>
-    </section>
-
     <!-- Lo más buscado -->
     <section class="bestsellers-section">
-      <img src="/images/shape-2.png" class="floating-shape shape-right" alt="" aria-hidden="true">
       <div class="bestsellers-container">
         <div class="section-header">
           <span class="section-eyebrow">{{ t('home.trendEyebrow') }}</span>
@@ -197,89 +157,112 @@ onMounted(async () => {
       </div>
     </section>
 
-    <!-- Banner Maquila -->
-    <section class="maquila-banner">
-      <div class="maquila-background" style="background-image: url('/images/maquila.png');">
-        <div class="maquila-overlay"></div>
-      </div>
-      <div class="maquila-content">
-        <span class="maquila-eyebrow">{{ t('home.servicesEyebrow') }}</span>
-        <h2 class="maquila-title">{{ t('home.maquilaTitle') }}</h2>
-        <p class="maquila-desc">{{ t('home.maquilaDesc') }}</p>
-        <button class="maquila-btn">{{ t('home.maquilaBtn') }}</button>
-      </div>
-    </section>
-
-    <!-- Contacto -->
-    <section class="contact-section">
-      <div class="contact-container">
-        <div class="contact-header">
-          <span class="section-eyebrow">{{ t('home.contactEyebrow') }}</span>
-          <h2 class="section-title" style="margin-bottom: 16px;">{{ t('home.contactTitle') }}</h2>
-          <p class="contact-sub">{{ t('home.contactDesc') }}</p>
-        </div>
+    <!-- Bottom Split Section: Benefits + Contact -->
+    <section id="contacto" class="bottom-split-section">
+      <div class="bottom-split-container">
         
-        <div class="contact-content-stacked">
-          <!-- Formulario -->
-          <div class="contact-form-card">
-            <form class="contact-form" @submit.prevent>
-              <div class="form-group">
-                <label for="name">{{ t('home.contactName') }}</label>
-                <input type="text" id="name" :placeholder="t('home.contactNamePh')" required>
+        <!-- Benefits Half -->
+        <div class="benefits-half">
+          <h2 class="split-title" style="margin-bottom: 16px;">{{ t('home.benefitsTitle') }}</h2>
+          <p class="benefits-desc" style="font-family: 'Nunito Sans', sans-serif; font-size: 1.05rem; color: #4b5563; margin-bottom: 32px; line-height: 1.6;">{{ t('home.benefitsDesc') }}</p>
+          
+          <div style="display: flex; flex-direction: column; gap: 24px; margin-bottom: 40px;">
+            <div class="split-benefit-item" style="margin-bottom: 0;">
+              <div class="split-benefit-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>
               </div>
-
-              <div class="form-group">
-                <label for="email">{{ t('home.contactEmail') }}</label>
-                <input type="email" id="email" :placeholder="t('home.contactEmailPh')" required>
-              </div>
-
-              <div class="form-group">
-                <label for="subject">{{ t('home.contactSubject') }}</label>
-                <select id="subject" required>
-                  <option value="" disabled selected>{{ t('home.contactSubjectPh') }}</option>
-                  <option value="pedido">{{ t('home.contactOrder') }}</option>
-                  <option value="maquila">{{ t('home.contactMaquila') }}</option>
-                  <option value="otro">{{ t('home.contactOther') }}</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="message">{{ t('home.contactMessage') }}</label>
-                <textarea id="message" rows="4" :placeholder="t('home.contactMessagePh')" required></textarea>
-              </div>
-
-              <button type="submit" class="submit-btn">{{ t('home.contactSend') }}</button>
-            </form>
-          </div>
-
-          <!-- Info de Contacto -->
-          <div class="contact-info-card">
-            <div class="info-item">
-              <div class="info-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                </svg>
-              </div>
-              <div class="info-text">
-                <h3>{{ t('home.contactPhone') }}</h3>
-                <p><a href="tel:+525512345678">+52 55 1234 5678</a></p>
+              <div class="split-benefit-text">
+                <h3>{{ t('home.benefit1Title') }}</h3>
+                <p>{{ t('home.benefit1Desc') }}</p>
               </div>
             </div>
             
-            <div class="info-item">
-              <div class="info-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
+            <div class="split-benefit-item" style="margin-bottom: 0;">
+              <div class="split-benefit-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg>
               </div>
-              <div class="info-text">
-                <h3>{{ t('home.contactEmailLabel') }}</h3>
-                <p><a href="mailto:hola@amigomerch.mx">hola@amigomerch.mx</a></p>
+              <div class="split-benefit-text">
+                <h3>{{ t('home.benefit2Title') }}</h3>
+                <p>{{ t('home.benefit2Desc') }}</p>
+              </div>
+            </div>
+
+            <div class="split-benefit-item" style="margin-bottom: 0;">
+              <div class="split-benefit-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+              </div>
+              <div class="split-benefit-text">
+                <h3>{{ t('home.benefit3Title') }}</h3>
+                <p>{{ t('home.benefit3Desc') }}</p>
+              </div>
+            </div>
+
+            <div class="split-benefit-item" style="margin-bottom: 0;">
+              <div class="split-benefit-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              </div>
+              <div class="split-benefit-text">
+                <h3>{{ t('home.benefit4Title') }}</h3>
+                <p>{{ t('home.benefit4Desc') }}</p>
+              </div>
+            </div>
+
+            <div class="split-benefit-item" style="margin-bottom: 0;">
+              <div class="split-benefit-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"></path><line x1="16" y1="8" x2="2" y2="22"></line><line x1="17.5" y1="15" x2="9" y2="6.5"></line></svg>
+              </div>
+              <div class="split-benefit-text">
+                <h3>{{ t('home.benefit5Title') }}</h3>
+                <p>{{ t('home.benefit5Desc') }}</p>
+              </div>
+            </div>
+
+            <div class="split-benefit-item" style="margin-bottom: 0;">
+              <div class="split-benefit-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              </div>
+              <div class="split-benefit-text">
+                <h3>{{ t('home.benefit6Title') }}</h3>
+                <p>{{ t('home.benefit6Desc') }}</p>
               </div>
             </div>
           </div>
+          
+          <router-link to="/nosotros" class="split-btn">{{ t('home.benefitsBtn') || 'SABER MÁS' }}</router-link>
         </div>
+
+        <!-- Contact Half -->
+        <div class="contact-half">
+          <div class="contact-glass-card">
+            <div class="contact-header">
+              <span class="section-eyebrow">{{ t('home.contactEyebrow') }}</span>
+              <h2 class="section-title" style="margin-bottom: 16px; color: var(--primary-color);">{{ t('home.contactTitle') }}</h2>
+              <p class="contact-sub">{{ t('home.contactDesc') }}</p>
+            </div>
+            
+            <div class="contact-form-wrapper">
+              <form class="contact-form" @submit.prevent>
+                <div class="form-group">
+                  <label for="name">{{ t('home.contactName') }}</label>
+                  <input type="text" id="name" :placeholder="t('home.contactNamePh')" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="email">{{ t('home.contactEmail') }}</label>
+                  <input type="email" id="email" :placeholder="t('home.contactEmailPh')" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="message">{{ t('home.contactMessage') }}</label>
+                  <textarea id="message" rows="4" :placeholder="t('home.contactMessagePh')" required></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn">{{ t('home.contactSend') }}</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   </main>
@@ -302,6 +285,26 @@ onMounted(async () => {
   background-color: var(--primary-color);
   overflow: hidden;
 }
+.hero-slide {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0;
+  transition: opacity 1s ease-in-out, transform 5s ease-out;
+  transform: scale(1.05);
+  z-index: 0;
+}
+.hero-slide.active {
+  opacity: 1;
+  transform: scale(1);
+}
+.hero-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to bottom, rgba(239, 114, 21, 0.7), rgba(0,0,0,0.4));
+  z-index: 1;
+}
 .hero-title {
   font-family: 'Nunito', sans-serif;
   font-size: 3.5rem;
@@ -316,36 +319,6 @@ onMounted(async () => {
   z-index: 2;
 }
 
-.hero-shape {
-  position: absolute;
-  pointer-events: none;
-  z-index: 1;
-  opacity: 0.85;
-}
-
-.hero-shape-right {
-  top: 15%;
-  right: 8%;
-  width: 260px;
-  animation: spin-perpetual 20s linear infinite;
-  will-change: transform;
-}
-
-.hero-shape-left {
-  top: 25%;
-  left: 8%;
-  width: 220px;
-  opacity: 1;
-}
-
-@keyframes spin-perpetual {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
 .custom-shape-divider-bottom {
   position: absolute;
   bottom: 0;
@@ -385,39 +358,12 @@ onMounted(async () => {
   100% { transform: translate3d(85px,0,0); }
 }
 
-@media (max-width: 1200px) {
-  .hero-shape-right {
-    width: 200px;
-    right: 2%;
-    top: 20%;
-  }
-  .hero-shape-left {
-    width: 160px;
-    left: 2%;
-    top: 30%;
-  }
-}
-
 @media (max-width: 768px) {
   .hero-title {
     font-size: 2.2rem;
   }
   .editorial {
     height: 40px;
-  }
-  .hero-shape-right {
-    width: 140px;
-    right: -20px;
-    top: 10%;
-    opacity: 0.3;
-  }
-  .hero-shape-left {
-    width: 110px;
-    left: 50%;
-    transform: translateX(-50%);
-    top: auto;
-    bottom: 20px;
-    opacity: 1;
   }
 }
 
@@ -430,9 +376,9 @@ onMounted(async () => {
 }
 
 .catalog-container {
-  max-width: 1200px;
+  max-width: 1300px;
   margin: 0 auto;
-  padding: 0 40px;
+  padding: 0 24px;
 }
 
 .section-title {
@@ -445,12 +391,16 @@ onMounted(async () => {
 }
 
 .artist-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr); /* 4 Columnas */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 40px 32px;
 }
 
 .artist-card {
+  width: calc(25% - 24px);
+  min-width: 180px;
+  max-width: 250px;
   display: flex;
   flex-direction: column;
   cursor: pointer;
@@ -504,15 +454,14 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
-  .artist-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .artist-card {
+    width: calc(50% - 16px);
   }
 }
 
 @media (max-width: 600px) {
-  .artist-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+  .artist-card {
+    width: calc(50% - 10px);
   }
 }
 
@@ -565,13 +514,17 @@ onMounted(async () => {
 }
 
 .products-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 30px;
 }
 
 /* Product Card */
 .product-card {
+  width: calc(25% - 22.5px);
+  min-width: 260px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
   border-radius: 24px;
@@ -748,14 +701,14 @@ onMounted(async () => {
 }
 
 @media (max-width: 900px) {
-  .products-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .product-card {
+    width: calc(50% - 15px);
   }
 }
 
 @media (max-width: 600px) {
-  .products-grid {
-    grid-template-columns: 1fr;
+  .product-card {
+    width: 100%;
   }
   .bestsellers-title {
     font-size: 2.4rem;
@@ -1161,7 +1114,7 @@ onMounted(async () => {
 
 .info-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 16px;
 }
 
@@ -1279,6 +1232,143 @@ onMounted(async () => {
   .contact-info-card {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* Bottom Split Section */
+.bottom-split-section {
+  padding: 80px 0 100px 0;
+  background-color: #ffffff;
+}
+
+.bottom-split-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: flex-start;
+}
+
+/* Benefits Half */
+.benefits-half {
+  display: flex;
+  flex-direction: column;
+}
+
+.split-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-color);
+  margin-bottom: 32px;
+  line-height: 1.2;
+}
+
+.split-benefit-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 40px;
+}
+
+.split-benefit-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(239, 114, 21, 0.25);
+}
+
+.split-benefit-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.split-benefit-text h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 6px;
+}
+
+.split-benefit-text p {
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 1rem;
+  color: #6b7280;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.split-btn {
+  align-self: flex-start;
+  display: inline-block;
+  background-color: white;
+  color: var(--primary-color);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 800;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 12px 32px;
+  border-radius: 30px;
+  text-decoration: none;
+  border: 2px solid var(--primary-color);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.split-btn:hover {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(239, 114, 21, 0.3);
+}
+
+/* Contact Half */
+.contact-half {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-image: url('/frascos_optimizada_web.jpg');
+  background-size: cover;
+  background-position: center;
+  border-radius: 32px;
+  padding: 40px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+}
+
+.contact-glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+.contact-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.contact-form-wrapper {
+  background: transparent;
+  padding: 0;
+}
+
+@media (max-width: 1024px) {
+  .bottom-split-container {
+    grid-template-columns: 1fr;
+    gap: 56px;
   }
 }
 </style>

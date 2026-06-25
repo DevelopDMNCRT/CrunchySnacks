@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import CartDrawer from './CartDrawer.vue'
 import { cartActions, cartGetters } from '../store/cart.js'
 import { currentLang } from '../store/locale.js'
@@ -30,7 +30,29 @@ onMounted(async () => {
 })
 
 const route = useRoute()
+const router = useRouter()
 const isCheckout = computed(() => route.path === '/checkout')
+
+const scrollToContact = async (e) => {
+  e.preventDefault();
+  isMenuOpen.value = false;
+  if (route.path === '/') {
+    const el = document.getElementById('contacto');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  } else {
+    await router.push({ path: '/', hash: '#contacto' });
+  }
+}
+
+const scrollToTop = async (e) => {
+  e.preventDefault();
+  isMenuOpen.value = false;
+  if (route.path === '/') {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    await router.push({ path: '/' });
+  }
+}
 const { t } = useLocale()
 
 watch(route, () => {
@@ -89,15 +111,15 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
   <header class="site-header">
     <div class="header-container">
       <div class="logo-container">
-        <router-link to="/">
-          <img src="/logo.png" alt="Amigo Merch Logo" class="logo" />
-        </router-link>
+        <a href="#" @click="scrollToTop">
+          <img src="/logo.png" alt="Crunchy Snacks Logo" class="logo" />
+        </a>
       </div>
 
       <!-- Desktop Navigation -->
       <nav class="desktop-nav">
         <ul class="desktop-nav-links">
-          <li><router-link to="/">{{ t('nav.home') }}</router-link></li>
+          <li><a href="#" @click="scrollToTop">{{ t('nav.home') }}</a></li>
           <li class="has-megamenu" :class="{ 'is-active': isDesktopMegamenuOpen }">
             <a href="#" @click.prevent="isDesktopMegamenuOpen = !isDesktopMegamenuOpen" class="megamenu-trigger">{{ t('nav.stores') }} <span class="chevron"></span></a>
             <div class="megamenu">
@@ -118,9 +140,7 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
             </div>
           </li>
           <li><router-link to="/nosotros">{{ t('nav.about') }}</router-link></li>
-          <li><router-link to="/rastreo">{{ t('nav.tracking') }}</router-link></li>
-          <li><router-link to="/facturacion">{{ t('nav.billing') }}</router-link></li>
-          <li><router-link to="/contacto">{{ t('nav.contact') }}</router-link></li>
+          <li><a href="#" @click="scrollToContact">{{ t('nav.contact') }}</a></li>
         </ul>
       </nav>
 
@@ -171,7 +191,7 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
     <!-- Navigation Drawer -->
     <nav class="mobile-nav" :class="{ 'nav-open': isMenuOpen }">
       <ul class="nav-links">
-        <li><router-link to="/" @click="toggleMenu">{{ t('nav.home') }}</router-link></li>
+        <li><a href="#" @click="scrollToTop">{{ t('nav.home') }}</a></li>
         <li>
           <div class="mobile-submenu-toggle" @click="isTiendasOpen = !isTiendasOpen">
             {{ t('nav.stores') }}
@@ -184,9 +204,7 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
           </ul>
         </li>
         <li><router-link to="/nosotros" @click="toggleMenu">{{ t('nav.about') }}</router-link></li>
-        <li><router-link to="/rastreo" @click="toggleMenu">{{ t('nav.tracking') }}</router-link></li>
-        <li><router-link to="/facturacion" @click="toggleMenu">{{ t('nav.billing') }}</router-link></li>
-        <li><router-link to="/contacto" @click="toggleMenu">{{ t('nav.contact') }}</router-link></li>
+        <li><a href="#" @click="scrollToContact">{{ t('nav.contact') }}</a></li>
       </ul>
     </nav>
   </header>

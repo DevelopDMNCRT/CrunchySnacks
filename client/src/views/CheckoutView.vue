@@ -97,14 +97,9 @@
 
           </form>
 
-          <div class="payment-brick-section mt-4" v-show="cartState.shippingAvailable">
+          <div class="payment-brick-section mt-4">
             <h3 style="margin-bottom: 20px;">Pago con Tarjeta</h3>
             <div id="paymentBrick_container"></div>
-          </div>
-          <div class="payment-brick-section mt-4" v-if="!cartState.shippingAvailable">
-            <div style="background: #fef2f2; border: 1px solid #f87171; border-radius: 12px; padding: 20px; text-align: center; color: #991b1b; font-family: 'Nunito Sans', sans-serif;">
-              <strong>Envío no disponible.</strong> Selecciona una dirección válida para continuar con el pago.
-            </div>
           </div>
         </div>
 
@@ -494,7 +489,7 @@ const initPaymentBrick = async (publicKey) => {
     initialization: {
       amount: cartGetters.totalPrice.value + cartGetters.shippingCost.value,
       payer: {
-        email: 'cliente@amigomerch.mx' // Pre-llenado dummy para ocultar el input de correo del Brick
+        email: 'cliente@crunchysnacks.mx' // Pre-llenado dummy para ocultar el input de correo del Brick
       }
     },
     customization: {

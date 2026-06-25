@@ -3,6 +3,15 @@ import HomeView from '../views/HomeView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
+  scrollBehavior(to, from, savedPosition) {
+    if (to.hash) {
+      return {
+        el: to.hash,
+        behavior: 'smooth',
+      }
+    }
+    return savedPosition || { top: 0 }
+  },
   routes: [
     {
       path: '/',
@@ -34,21 +43,7 @@ const router = createRouter({
       name: 'nosotros',
       component: () => import('../views/NosotrosView.vue')
     },
-    {
-      path: '/rastreo',
-      name: 'rastreo',
-      component: () => import('../views/RastreoView.vue')
-    },
-    {
-      path: '/facturacion',
-      name: 'facturacion',
-      component: () => import('../views/FacturacionView.vue')
-    },
-    {
-      path: '/contacto',
-      name: 'contacto',
-      component: () => import('../views/ContactoView.vue')
-    },
+
     {
       path: '/pago/exito',
       name: 'pagoExito',

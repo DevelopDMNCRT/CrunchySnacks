@@ -16,92 +16,78 @@
           <p>{{ t('nosotros.storyP1') }}</p>
           <p>{{ t('nosotros.storyP2') }}</p>
         </div>
-        <!-- Forma decorativa flotante -->
         <img src="/images/shape-2.png" class="floating-shape shape-right" alt="" aria-hidden="true">
       </div>
     </section>
 
-    <!-- Services Section -->
-    <section class="services-section">
+    <!-- Mission, Vision, Values -->
+    <section class="mvv-section">
       <div class="container">
-        <div class="services-grid">
-          
-          <div class="service-card">
-            <div class="service-icon">
-              <!-- Diseño / Producción -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 20h9"></path>
-                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-              </svg>
-            </div>
-            <h3>{{ t('nosotros.service1Title') }}</h3>
-            <p>{{ t('nosotros.service1Desc') }}</p>
+        <div class="mvv-grid">
+          <div class="mvv-card">
+            <h3>{{ t('nosotros.misionTitle') }}</h3>
+            <p>{{ t('nosotros.misionDesc') }}</p>
           </div>
-
-          <div class="service-card">
-            <div class="service-icon">
-              <!-- Ventas online / Almacenamiento -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                <line x1="8" y1="21" x2="16" y2="21"></line>
-                <line x1="12" y1="17" x2="12" y2="21"></line>
-              </svg>
-            </div>
-            <h3>{{ t('nosotros.service2Title') }}</h3>
-            <p>{{ t('nosotros.service2Desc') }}</p>
+          <div class="mvv-card highlight-card">
+            <h3>{{ t('nosotros.visionTitle') }}</h3>
+            <p>{{ t('nosotros.visionDesc') }}</p>
           </div>
-
-          <div class="service-card">
-            <div class="service-icon">
-              <!-- Tour / Camión -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="1" y="3" width="15" height="13"></rect>
-                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                <circle cx="18.5" cy="18.5" r="2.5"></circle>
-              </svg>
-            </div>
-            <h3>{{ t('nosotros.service3Title') }}</h3>
-            <p>{{ t('nosotros.service3Desc') }}</p>
+          <div class="mvv-card">
+            <h3>{{ t('nosotros.valoresTitle') }}</h3>
+            <p>{{ t('nosotros.valoresDesc') }}</p>
           </div>
-
-          <div class="service-card">
-            <div class="service-icon">
-              <!-- Tienda Pop Up / Eventos -->
-              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
-            </div>
-            <h3>{{ t('nosotros.service4Title') }}</h3>
-            <p>{{ t('nosotros.service4Desc') }}</p>
-          </div>
-
         </div>
       </div>
     </section>
 
-    <!-- Lo Más Vendido -->
-    <section class="best-sellers-section">
+    <!-- Certifications -->
+    <section class="certifications-section">
       <div class="container">
-        <h2 class="section-title">{{ t('nosotros.bestSellersTitle') }}</h2>
-        <div class="products-grid">
-          <div class="product-card" v-for="product in bestSellers" :key="product.id" @click="goToProduct(product.id)">
-            <div class="product-image-wrapper">
-              <img :src="product.image" :alt="product.name" class="product-image" loading="lazy">
-              <span class="product-tag" v-if="product.tag">{{ tTag(product.tag) }}</span>
-              <div class="product-overlay">
-                <button class="overlay-btn">{{ t('nosotros.viewProduct') }}</button>
-              </div>
-            </div>
-            <div class="product-info">
-              <span class="product-artist">{{ product.artist }}</span>
-              <h3 class="product-name">{{ product.name }}</h3>
-              <div class="product-footer">
-                <span class="product-price">{{ formatPrice(product.price) }}</span>
-              </div>
-            </div>
+        <h2 class="section-title">{{ t('nosotros.certificacionesTitle') }}</h2>
+        <div class="certifications-banner">
+          <img src="/Captura-de-pantalla-2025-06-18-133932.png" alt="Certificaciones" class="cert-banner-img" loading="lazy" />
+        </div>
+      </div>
+    </section>
+
+    <!-- Liofilización Process -->
+    <section class="process-section">
+      <div class="container process-container">
+        <div class="process-text">
+          <div class="process-header">
+            <h2>{{ t('nosotros.liofilizacionTitle') }}</h2>
+            <p class="process-desc">{{ t('nosotros.liofilizacionDesc') }}</p>
           </div>
+          <div class="process-grid">
+            
+            <div class="process-step">
+              <div class="step-number">1</div>
+              <h3>{{ t('nosotros.step1Title') }}</h3>
+              <p>{{ t('nosotros.step1Desc') }}</p>
+            </div>
+
+            <div class="process-step">
+              <div class="step-number">2</div>
+              <h3>{{ t('nosotros.step2Title') }}</h3>
+              <p>{{ t('nosotros.step2Desc') }}</p>
+            </div>
+
+            <div class="process-step">
+              <div class="step-number">3</div>
+              <h3>{{ t('nosotros.step3Title') }}</h3>
+              <p>{{ t('nosotros.step3Desc') }}</p>
+            </div>
+
+            <div class="process-step">
+              <div class="step-number">4</div>
+              <h3>{{ t('nosotros.step4Title') }}</h3>
+              <p>{{ t('nosotros.step4Desc') }}</p>
+            </div>
+
+          </div>
+        </div>
+        <div class="process-image-wrapper">
+          <img src="/ChatGPT-Image-18-jun-2025-01_55_37-p.m.png" alt="Frutas Liofilizadas" class="process-image" loading="lazy" />
         </div>
       </div>
     </section>
@@ -110,23 +96,9 @@
 
 <script setup>
 import { onMounted } from 'vue'
-import { useRouter } from 'vue-router'
 import { useLocale } from '../composables/useLocale.js'
-import { formatPrice } from '../store/locale.js'
 
-const router = useRouter()
-const { t, tTag } = useLocale()
-
-const bestSellers = [
-  { id: 101, name: 'Playera Tour 2026', artist: 'Caloncho', price: 450, image: '/images/product1.png', tag: 'Nuevo' },
-  { id: 102, name: 'Sudadera Clásica', artist: 'Juan Gabriel', price: 850, image: '/images/product2.png', tag: 'Agotado' },
-  { id: 103, name: 'Gorra Bordada', artist: 'Bruses', price: 350, image: '/images/product3.png', tag: '' },
-  { id: 104, name: 'Totebag Eco', artist: 'Andrés Obregón', price: 250, image: '/images/product1.png', tag: 'Popular' }
-]
-
-const goToProduct = (id) => {
-  router.push(`/producto/${id}`)
-}
+const { t } = useLocale()
 
 onMounted(() => {
   window.scrollTo(0, 0)
@@ -143,10 +115,10 @@ onMounted(() => {
 /* Hero Header */
 .us-hero {
   position: relative;
-  height: 250px;
-  background-image: url('/images/us-header.png');
+  height: 350px;
+  background-image: url('/frascos_optimizada_web.jpg');
   background-size: cover;
-  background-position: center;
+  background-position: center 60%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -156,7 +128,7 @@ onMounted(() => {
 .hero-overlay {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(to bottom, rgba(35,118,80,0.6), rgba(0,0,0,0.8));
+  background: linear-gradient(to bottom, rgba(35,118,80,0.4), rgba(0,0,0,0.7));
   z-index: 1;
 }
 
@@ -269,226 +241,203 @@ onMounted(() => {
   100% { transform: translateY(0px) rotate(15deg); }
 }
 
-/* Services Section */
-.services-section {
-  padding: 60px 20px 80px;
-  background: white;
+/* MVV Section */
+.mvv-section {
+  padding: 80px 20px;
+  background: #f8f8f8;
 }
 
-.services-grid {
+.mvv-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 60px 40px;
-  max-width: 1000px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 30px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
-.service-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+.mvv-card {
+  background: white;
+  border-radius: 20px;
+  padding: 40px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+  border: 1px solid rgba(0,0,0,0.03);
+  transition: transform 0.3s;
 }
 
-.service-icon {
-  width: 64px;
-  height: 64px;
-  background-color: var(--secondary-color);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  color: #111;
+.mvv-card:hover {
+  transform: translateY(-8px);
 }
 
-.service-card h3 {
+.mvv-card h3 {
   font-family: 'Nunito', sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 900;
   color: var(--text-main);
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
-.service-card p {
+.mvv-card p {
   font-family: 'Nunito Sans', sans-serif;
   font-size: 1.1rem;
   line-height: 1.6;
   color: var(--text-muted);
-  margin: 0;
 }
 
-/* Best Sellers Section */
-.best-sellers-section {
-  padding: 80px 20px 40px;
-  background: #f8f8f8;
+.mvv-card.highlight-card {
+  background: var(--primary-color);
+  color: #ffffff;
 }
 
-.section-title {
+.mvv-card.highlight-card h3, 
+.mvv-card.highlight-card p {
+  color: #ffffff !important;
+}
+
+/* Certifications Section */
+.certifications-section {
+  padding: 80px 20px;
+  background: white;
+}
+
+.certifications-section .section-title {
   text-align: center;
   font-family: 'Nunito', sans-serif;
   font-size: 2.5rem;
   font-weight: 900;
   color: var(--text-main);
-  margin-bottom: 48px;
+  margin-bottom: 40px;
 }
 
-/* Grid de Productos */
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 40px;
+.certifications-banner {
+  max-width: 1000px;
+  margin: 0 auto;
+  text-align: center;
 }
 
-.product-card {
-  display: flex;
-  flex-direction: column;
-  border-radius: 24px;
-  overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.04);
-  transition: box-shadow 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-  border: 1px solid rgba(0,0,0,0.03);
-  cursor: pointer;
-}
-
-.product-card:hover {
-  transform: translateY(-12px);
-  box-shadow: 0 20px 48px rgba(0,0,0,0.1);
-}
-
-.product-image-wrapper {
-  position: relative;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  background: #f5f5f5;
-}
-
-.product-image {
+.cert-banner-img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+  height: auto;
+  object-fit: contain;
+  animation: floatCert 6s ease-in-out infinite alternate;
 }
 
-.product-card:hover .product-image {
-  transform: scale(1.05);
+@keyframes floatCert {
+  0% { transform: translateY(0px); }
+  100% { transform: translateY(-10px); }
 }
 
-.product-tag {
-  position: absolute;
-  top: 16px;
-  left: 16px;
+/* Process Section */
+.process-section {
+  padding: 100px 20px;
+  background: #f8f8f8;
+}
+
+.process-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+  max-width: 1200px;
+}
+
+.process-header {
+  margin-bottom: 40px;
+}
+
+.process-header h2 {
+  font-family: 'Nunito', sans-serif;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--text-main);
+  margin-bottom: 16px;
+}
+
+.process-desc {
+  font-family: 'Nunito Sans', sans-serif;
+  font-size: 1.15rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.process-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+.process-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+.step-number {
+  flex-shrink: 0;
+  width: 50px;
+  height: 50px;
   background: var(--secondary-color);
   color: #111;
-  font-family: 'Nunito Sans', sans-serif;
-  font-weight: 800;
-  font-size: 0.8rem;
-  padding: 6px 12px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  z-index: 2;
-}
-
-.product-overlay {
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(35, 118, 80, 0.2);
+  font-family: 'Nunito', sans-serif;
+  font-size: 1.4rem;
+  font-weight: 900;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 3;
 }
 
-.product-card:hover .product-overlay {
-  opacity: 1;
-}
-
-.overlay-btn {
-  background: white;
-  color: var(--primary-color);
-  border: none;
-  padding: 14px 28px;
-  border-radius: 24px;
+.process-step h3 {
   font-family: 'Nunito', sans-serif;
+  font-size: 1.3rem;
   font-weight: 800;
-  font-size: 1rem;
-  transform: translateY(20px);
-  transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), background 0.2s, color 0.2s;
-  cursor: pointer;
+  color: var(--text-main);
+  margin-bottom: 8px;
 }
 
-.product-card:hover .overlay-btn {
-  transform: translateY(0);
-}
-
-.overlay-btn:hover {
-  background: var(--secondary-color);
-  color: #111;
-}
-
-.product-info {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-}
-
-.product-artist {
+.process-step p {
   font-family: 'Nunito Sans', sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.5;
   color: var(--text-muted);
-  font-size: 0.9rem;
-  font-weight: 600;
-  margin-bottom: 4px;
+  margin: 0;
 }
 
-.product-name {
-  font-family: 'Nunito', sans-serif;
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: var(--text-main);
-  margin: 0 0 16px 0;
-  line-height: 1.4;
-  transition: color 0.2s;
+.process-image-wrapper {
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
 }
 
-.product-card:hover .product-name {
-  color: var(--primary-color);
+.process-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.5s ease;
 }
 
-.product-footer {
-  margin-top: auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.product-price {
-  font-family: 'Nunito Sans', sans-serif;
-  font-size: 1.2rem;
-  font-weight: 800;
-  color: var(--text-main);
+.process-image-wrapper:hover .process-image {
+  transform: scale(1.05);
 }
 
 /* Responsividad */
 @media (max-width: 1024px) {
-  .products-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .mvv-grid { grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .process-container { gap: 40px; }
   .us-text-content h2 { font-size: 2.2rem; }
   .hero-content h1 { font-size: 3rem; }
 }
 
 @media (max-width: 768px) {
   .us-hero { height: 40vh; min-height: 300px; }
-  .products-grid { grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .mvv-grid { grid-template-columns: 1fr; gap: 20px; }
+  .process-container { grid-template-columns: 1fr; }
+  .process-header { text-align: center; }
   .us-story-section { padding: 60px 20px; }
-  .services-grid { grid-template-columns: 1fr; gap: 40px; text-align: center; }
-  .service-card { align-items: center; }
 }
 
 @media (max-width: 480px) {
-  .products-grid { grid-template-columns: 1fr; }
   .us-text-content h2 { font-size: 1.8rem; }
   .hero-content h1 { font-size: 2.2rem; }
 }

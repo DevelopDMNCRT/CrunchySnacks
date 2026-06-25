@@ -172,7 +172,6 @@ app.use('/api/users', authenticateToken);
 app.use('/api/clientes', authenticateToken);
 app.use('/api/reportes', authenticateToken);
 app.use('/api/configuracion', authenticateToken);
-app.use('/api/reglas-envio', authenticateToken);
 app.use('/api/settings', authenticateToken);
 app.use('/api/suscriptores', authenticateToken);
 
@@ -1337,7 +1336,7 @@ app.get('/api/reglas-envio', async (req, res) => {
   }
 });
 
-app.post('/api/reglas-envio', async (req, res) => {
+app.post('/api/reglas-envio', authenticateToken, async (req, res) => {
   try {
     const { pais, estados, precio } = req.body;
     const result = await pool.query(
@@ -1351,7 +1350,7 @@ app.post('/api/reglas-envio', async (req, res) => {
   }
 });
 
-app.put('/api/reglas-envio/:id', async (req, res) => {
+app.put('/api/reglas-envio/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { pais, estados, precio } = req.body;
@@ -1367,7 +1366,7 @@ app.put('/api/reglas-envio/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/reglas-envio/:id', async (req, res) => {
+app.delete('/api/reglas-envio/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     await pool.query('DELETE FROM reglas_envio WHERE id = $1', [id]);

@@ -25,7 +25,7 @@ onMounted(() => {
       <div class="loading-bar-container">
         <div class="loading-bar"></div>
       </div>
-      <span class="loading-text">AMIGO MERCH</span>
+      <span class="loading-text">CRUNCHY SNACKS</span>
     </div>
   </div>
 </template>

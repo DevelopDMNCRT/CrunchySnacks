@@ -160,6 +160,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import AdminLayout from '@/components/layout/AdminLayout.vue';
+import axios from 'axios';
 
 
 // --- Reglas de Envío ---
@@ -201,8 +202,13 @@ const hideEstadosDropdown = () => { setTimeout(() => showEstadosDropdown.value =
 // FETCH Reglas
 const fetchReglas = async () => {
   try {
-    const res = await fetch('/api/reglas-envio');
-    if (res.ok) reglas.value = await res.json();
+    const token = localStorage.getItem('amigo_admin_token');
+    const res = await fetch('/api/reglas-envio', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (res.ok) {
+      reglas.value = await res.json();
+    }
   } catch (e) { console.error('Error fetching reglas:', e); }
 };
 
@@ -269,30 +275,38 @@ const guardarRegla = async () => {
 
   try {
     let res;
+    const token = localStorage.getItem('amigo_admin_token');
     if (nuevaRegla.value.id) {
       res = await fetch(`/api/reglas-envio/${nuevaRegla.value.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
     } else {
       res = await fetch('/api/reglas-envio', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
     }
 
-    if (res.ok) {
-      const guardada = await res.json();
-      if (nuevaRegla.value.id) {
-        const idx = reglas.value.findIndex(r => r.id === guardada.id);
-        if (idx !== -1) reglas.value[idx] = guardada;
-      } else {
-        reglas.value.unshift(guardada);
-      }
-      mostrarModalRegla.value = false;
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
+    const guardada = await res.json();
+    if (nuevaRegla.value.id) {
+      const idx = reglas.value.findIndex(r => r.id === guardada.id);
+      if (idx !== -1) reglas.value[idx] = guardada;
+    } else {
+      reglas.value.unshift(guardada);
+    }
+    mostrarModalRegla.value = false;
   } catch (e) { console.error('Error saving regla:', e); }
   finally { savingRegla.value = false; }
 };
@@ -301,7 +315,11 @@ const guardarRegla = async () => {
 const eliminarRegla = async (id) => {
   if (!confirm('¿Seguro que deseas eliminar esta regla?')) return;
   try {
-    const res = await fetch(`/api/reglas-envio/${id}`, { method: 'DELETE' });
+    const token = localStorage.getItem('amigo_admin_token');
+    const res = await fetch(`/api/reglas-envio/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     if (res.ok) {
       reglas.value = reglas.value.filter(r => r.id !== id);
     }

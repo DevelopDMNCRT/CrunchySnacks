@@ -40,9 +40,12 @@ axios.interceptors.request.use((config) => {
   if (config.url && config.url.startsWith('/api') && !config.url.startsWith('/api/auth/login')) {
     const token = localStorage.getItem('amigo_admin_token')
     if (token) {
-      if (config.headers && typeof (config.headers as any).set === 'function') {
+      if (!config.headers) {
+        config.headers = {} as any
+      }
+      if (typeof (config.headers as any).set === 'function') {
         (config.headers as any).set('Authorization', `Bearer ${token}`)
-      } else if (config.headers) {
+      } else {
         (config.headers as Record<string, string>)['Authorization'] = `Bearer ${token}`
       }
     }
