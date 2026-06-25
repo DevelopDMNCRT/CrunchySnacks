@@ -660,29 +660,25 @@ const currentLanguage = computed(() => languages.find(l => l.code === currentLan
   flex-direction: column;
   align-items: center;
   text-decoration: none;
-  background: white;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  transition: transform 0.2s, box-shadow 0.2s;
-  border: 1px solid var(--border-color);
+  transition: transform 0.2s;
+  gap: 8px;
 }
 
 .megamenu-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 4px 12px rgba(239, 114, 21, 0.15);
-  border-color: var(--primary-color);
 }
 
 .megamenu-card-img {
   width: 100%;
   height: 90px;
   object-fit: cover;
-  border-bottom: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid var(--border-color);
+  background-color: white;
 }
 
 .megamenu-card-title {
-  padding: 10px 5px;
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--text-main);
