@@ -179,7 +179,7 @@ app.post('/api/contacto', async (req, res) => {
     `,
     attachments: [{
         filename: 'LogoCS.png',
-        path: '../admin/public/LogoCS.png',
+        href: 'https://raw.githubusercontent.com/DevelopDMNCRT/CrunchySnacks/main/admin/public/LogoCS.png',
         cid: 'logocs'
     }]
   };
