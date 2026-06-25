@@ -130,6 +130,72 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
+// --- Contact Route ---
+app.post('/api/contacto', async (req, res) => {
+  const { name, email, message } = req.body;
+  if (!name || !email || !message) {
+    return res.status(400).json({ error: 'Todos los campos son requeridos.' });
+  }
+
+  const mailOptions = {
+    from: process.env.SMTP_FROM || `"Crunchy Snacks" <${process.env.SMTP_USER}>`,
+    to: 'develop@dmncrt.com',
+    subject: `Nuevo mensaje de contacto de ${name}`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f9fafb; margin: 0; padding: 40px 20px; color: #374151; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+          .header { background-color: #EF7215; padding: 30px 20px; text-align: center; color: #ffffff; }
+          .header h1 { margin: 0; font-size: 24px; font-weight: bold; letter-spacing: 1px; }
+          .content { padding: 40px 30px; }
+          .field { margin-bottom: 24px; }
+          .label { font-size: 13px; text-transform: uppercase; color: #6b7280; font-weight: bold; margin-bottom: 8px; letter-spacing: 0.5px; }
+          .value { font-size: 16px; background-color: #f3f4f6; padding: 16px; border-radius: 8px; line-height: 1.5; color: #111827; }
+          .message-box { background-color: #fff7ed; border-left: 4px solid #EF7215; padding: 16px; border-radius: 4px 8px 8px 4px; font-size: 16px; line-height: 1.6; color: #111827; }
+          .footer { text-align: center; padding: 20px; font-size: 12px; color: #9ca3af; background-color: #f9fafb; border-top: 1px solid #e5e7eb; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>SOPORTE CRUNCHY SNACKS</h1>
+          </div>
+          <div class="content">
+            <div class="field">
+              <div class="label">Nombre del Cliente</div>
+              <div class="value">${name}</div>
+            </div>
+            <div class="field">
+              <div class="label">Correo Electrónico</div>
+              <div class="value"><a href="mailto:${email}" style="color: #EF7215; text-decoration: none; font-weight: bold;">${email}</a></div>
+            </div>
+            <div class="field">
+              <div class="label">Mensaje</div>
+              <div class="message-box">${message.replace(/\n/g, '<br>')}</div>
+            </div>
+          </div>
+          <div class="footer">
+            Este mensaje fue enviado desde el formulario de contacto de la página web de Crunchy Snacks.
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  try {
+    await mailer.sendMail(mailOptions);
+    res.json({ success: true, message: 'Mensaje enviado correctamente.' });
+  } catch (err) {
+    console.error('Error enviando correo de contacto:', err);
+    res.status(500).json({ error: 'Error al enviar el mensaje. Intenta más tarde.' });
+  }
+});
+
 // --- Auth Routes ---
 
 app.post('/api/auth/login', async (req, res) => {

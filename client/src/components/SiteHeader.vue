@@ -48,9 +48,16 @@ const scrollToTop = async (e) => {
   e.preventDefault();
   isMenuOpen.value = false;
   if (route.path === '/') {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollContainer = document.querySelector('.master-scroll-container');
+    if (scrollContainer) {
+      scrollContainer.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   } else {
     await router.push({ path: '/' });
+    setTimeout(() => {
+      const scrollContainer = document.querySelector('.master-scroll-container');
+      if (scrollContainer) scrollContainer.scrollTo({ top: 0 });
+    }, 100);
   }
 }
 const { t } = useLocale()

@@ -75,6 +75,40 @@ onMounted(async () => {
   }
 })
 
+const contactForm = ref({
+  name: '',
+  email: '',
+  message: ''
+})
+const contactStatus = ref({ loading: false, success: false, error: '' })
+
+const submitContactForm = async () => {
+  contactStatus.value.loading = true
+  contactStatus.value.success = false
+  contactStatus.value.error = ''
+  
+  try {
+    const res = await fetch('/api/contacto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(contactForm.value)
+    })
+    
+    if (!res.ok) throw new Error('Error al enviar el mensaje')
+    
+    contactStatus.value.success = true
+    contactForm.value = { name: '', email: '', message: '' }
+    
+    setTimeout(() => {
+      contactStatus.value.success = false
+    }, 5000)
+  } catch (err) {
+    contactStatus.value.error = err.message
+  } finally {
+    contactStatus.value.loading = false
+  }
+}
+
 onUnmounted(() => {
   if (heroInterval) clearInterval(heroInterval)
 })
@@ -241,23 +275,32 @@ onUnmounted(() => {
             </div>
             
             <div class="contact-form-wrapper">
-              <form class="contact-form" @submit.prevent>
+              <form class="contact-form" @submit.prevent="submitContactForm">
                 <div class="form-group">
                   <label for="name">{{ t('home.contactName') }}</label>
-                  <input type="text" id="name" :placeholder="t('home.contactNamePh')" required>
+                  <input type="text" id="name" v-model="contactForm.name" :placeholder="t('home.contactNamePh')" required>
                 </div>
 
                 <div class="form-group">
                   <label for="email">{{ t('home.contactEmail') }}</label>
-                  <input type="email" id="email" :placeholder="t('home.contactEmailPh')" required>
+                  <input type="email" id="email" v-model="contactForm.email" :placeholder="t('home.contactEmailPh')" required>
                 </div>
 
                 <div class="form-group">
                   <label for="message">{{ t('home.contactMessage') }}</label>
-                  <textarea id="message" rows="4" :placeholder="t('home.contactMessagePh')" required></textarea>
+                  <textarea id="message" rows="4" v-model="contactForm.message" :placeholder="t('home.contactMessagePh')" required></textarea>
                 </div>
 
-                <button type="submit" class="submit-btn">{{ t('home.contactSend') }}</button>
+                <div v-if="contactStatus.success" class="contact-success" style="color: #10b981; margin-bottom: 15px; text-align: center; font-weight: bold;">
+                  ¡Mensaje enviado con éxito! Nos pondremos en contacto contigo pronto.
+                </div>
+                <div v-if="contactStatus.error" class="contact-error" style="color: #ef4444; margin-bottom: 15px; text-align: center;">
+                  Hubo un error al enviar tu mensaje. Por favor intenta más tarde.
+                </div>
+
+                <button type="submit" class="submit-btn" :disabled="contactStatus.loading">
+                  {{ contactStatus.loading ? 'Enviando...' : t('home.contactSend') }}
+                </button>
               </form>
             </div>
           </div>
