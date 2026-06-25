@@ -19,7 +19,7 @@ onMounted(() => {
   <div v-if="isVisible" class="preloader" :class="{ 'fade-out': isFading }">
     <div class="preloader-content">
       <div class="shape-container">
-        <img src="/images/shape-3.png" alt="Loading..." class="loading-shape">
+        <img src="/logo.png" alt="Loading..." class="loading-shape">
         <div class="shape-glow"></div>
       </div>
       <div class="loading-bar-container">
@@ -35,7 +35,7 @@ onMounted(() => {
   position: fixed;
   inset: 0;
   z-index: 9999;
-  background-color: #237650; /* Color primario */
+  background-color: #ffffff; /* Color primario blanco/crema */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -64,26 +64,26 @@ onMounted(() => {
 }
 
 .loading-shape {
-  width: 80px;
+  width: 140px;
   height: auto;
   z-index: 2;
   animation: dynamic-pulse 2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
-  filter: drop-shadow(0 0 15px rgba(246, 178, 0, 0.5));
+  filter: drop-shadow(0 0 10px rgba(239, 114, 21, 0.15));
 }
 
 .shape-glow {
   position: absolute;
-  width: 120px;
-  height: 120px;
-  background: radial-gradient(circle, rgba(246, 178, 0, 0.5) 0%, transparent 70%);
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle, rgba(239, 114, 21, 0.1) 0%, transparent 70%);
   animation: breathing-glow 2s ease-in-out infinite;
   border-radius: 50%;
 }
 
 .loading-bar-container {
   width: 200px;
-  height: 2px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 3px;
+  background: rgba(239, 114, 21, 0.15);
   border-radius: 10px;
   overflow: hidden;
   margin-top: 10px;
@@ -92,14 +92,14 @@ onMounted(() => {
 .loading-bar {
   width: 40%;
   height: 100%;
-  background: #F6B200;
+  background: #EF7215;
   animation: scan-loading 1.5s ease-in-out infinite;
   border-radius: 10px;
-  box-shadow: 0 0 10px #F6B200;
+  box-shadow: 0 0 8px #EF7215;
 }
 
 .loading-text {
-  color: white;
+  color: #EF7215;
   font-family: 'Nunito', sans-serif;
   font-weight: 900;
   letter-spacing: 8px;
@@ -112,11 +112,11 @@ onMounted(() => {
 @keyframes dynamic-pulse {
   0%, 100% {
     transform: scale(1) translateY(0);
-    filter: drop-shadow(0 0 15px rgba(246, 178, 0, 0.5));
+    filter: drop-shadow(0 0 10px rgba(239, 114, 21, 0.15));
   }
   40% {
-    transform: scale(1.15) translateY(-5px);
-    filter: drop-shadow(0 0 25px rgba(246, 178, 0, 0.8));
+    transform: scale(1.08) translateY(-3px);
+    filter: drop-shadow(0 0 20px rgba(239, 114, 21, 0.3));
   }
   50% {
     transform: scale(1.1) translateY(-5px);
