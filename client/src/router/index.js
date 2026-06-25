@@ -10,7 +10,10 @@ const router = createRouter({
         behavior: 'smooth',
       }
     }
-    return savedPosition || { top: 0 }
+    if (savedPosition) {
+      return { el: '.master-scroll-container', ...savedPosition }
+    }
+    return { el: '.master-scroll-container', top: 0 }
   },
   routes: [
     {

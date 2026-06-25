@@ -30,25 +30,6 @@ onMounted(() => {
 onUnmounted(() => {
   if (pollInterval) clearInterval(pollInterval)
 })
-
-import { watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
-
-const route = useRoute()
-
-watch(
-  () => route.path,
-  () => {
-    if (!route.hash) {
-      nextTick(() => {
-        const scrollContainer = document.querySelector('.master-scroll-container')
-        if (scrollContainer) {
-          scrollContainer.scrollTo({ top: 0, behavior: 'auto' })
-        }
-      })
-    }
-  }
-)
 </script>
 
 <template>
