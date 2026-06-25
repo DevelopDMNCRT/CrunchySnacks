@@ -154,13 +154,12 @@ app.post('/api/contacto', async (req, res) => {
           .content { font-size: 16px; line-height: 1.6; }
           .greeting { margin-bottom: 20px; font-weight: bold; }
           .message-body { background-color: #fcfaf8; padding: 20px; border-left: 4px solid #EF7215; margin: 20px 0; font-style: italic; color: #4b5563; }
-          .signature { margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px; font-size: 14px; color: #6b7280; }
         </style>
       </head>
       <body>
         <div class="container">
           <div class="header">
-            <img src="https://raw.githubusercontent.com/DevelopDMNCRT/CrunchySnacks/main/client/public/logo.png" alt="Crunchy Snacks">
+            <img src="cid:logocs" alt="Crunchy Snacks">
           </div>
           <div class="content">
             <div class="greeting">Hola Equipo,</div>
@@ -173,17 +172,16 @@ app.post('/api/contacto', async (req, res) => {
             <div class="message-body">
               ${message.replace(/\n/g, '<br>')}
             </div>
-            
-            <p>Para responder a este cliente, simplemente puedes responder a este correo o dar clic en su dirección de e-mail.</p>
-          </div>
-          <div class="signature">
-            Saludos,<br>
-            <strong>El sistema web de Crunchy Snacks</strong>
           </div>
         </div>
       </body>
       </html>
-    `
+    `,
+    attachments: [{
+        filename: 'LogoCS.png',
+        path: '../admin/public/LogoCS.png',
+        cid: 'logocs'
+    }]
   };
 
   try {
